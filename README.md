@@ -15,10 +15,24 @@ Only Linux platform with systemd supports this.
 * [sshpass](https://linux.die.net/man/1/sshpass)
 
 
+### Configuration
+
+| Parameter | Environment variable | Default (if not set) |
+| --------- | -------------------- | -------------------- |
+| Default port | ULTRON_PORT | '8080' |
+| Base URL | ULTRON_BASE_URL | Local server's http://FQDN:PORT. e.g. http://localhost.localdomain:8080 |
+| Application secret | ULTRON_SECRET | Random string |
+| Authenntication method | ULTRON_AUTH_METHOD | 'basic_auth' |
+| mongoDB username | ULTRON_DB_USER | None |
+| mongoDB password | ULTRON_DB_PASS | None |
+| mongoDB host | ULTRON_DB_HOST | 'localhost:27017' |
+| Celery backend | ULTRON_CELERY_BACKEND | 'redis://localhost/1' |
+| Celery broker | ULTRON_CELERY_BROKER | 'pyamqp://' |
+
+
 ### Installation
 
 First make sure your default python interpreter is python 3+
-
 
 * Install dependencies
 
@@ -56,6 +70,13 @@ source ~/.venv/bin/activate
 # Install package
 
 pip install ultron
+
+
+# Start important services
+
+sudo systemctl start mongod
+sudo systemctl start redis
+sudo systemctl start rabbitmq-server
 
 
 # Set admin password
@@ -129,18 +150,3 @@ curl --request DELETE \
   --url http://localhost:8080/api/v1.0/admin/test/reports \
   --user admin:admin
 ```
-
-
-### Configuration
-
-| Parameter | Environment variable | Default (if not set) |
-| --------- | -------------------- | -------------------- |
-| Default port | ULTRON_PORT | '8080' |
-| Base URL | ULTRON_BASE_URL | Local server's http://FQDN:PORT. e.g. http://localhost.localdomain:8080 |
-| Application secret | ULTRON_SECRET | Random string |
-| Authenntication method | ULTRON_AUTH_METHOD | 'basic_auth' |
-| mongoDB username | ULTRON_DB_USER | None |
-| mongoDB password | ULTRON_DB_PASS | None |
-| mongoDB host | ULTRON_DB_HOST | 'localhost:27017' |
-| Celery backend | ULTRON_CELERY_BACKEND | 'redis://localhost/1' |
-| Celery broker | ULTRON_CELERY_BROKER | 'pyamqp://' |
