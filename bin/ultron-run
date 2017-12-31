@@ -1,0 +1,4 @@
+#!/bin/sh
+
+tmux new -s ultron 'celery -A ultron.tasks worker --loglevel=info' \; \
+    split-window 'python -c "from ultron.app import server; server.serve_forever()"'
