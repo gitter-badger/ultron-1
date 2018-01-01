@@ -47,7 +47,7 @@ sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass
 ***Also install [redis](https://redis.io) and [RabbitMQ](https://www.rabbitmq.com) from their official site***
 
 
-* It is optional but recommended to use virtual python3 environment)
+* It is optional but recommended to use virtual python3 environment
 
 ```bash
 # Install virtualenv
