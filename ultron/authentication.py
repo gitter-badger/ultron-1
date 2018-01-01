@@ -38,7 +38,6 @@ class Authentication:
             return func(*args, **kwargs)
         return decorated
 
-
     def basic_auth(self):
         """
         Local login

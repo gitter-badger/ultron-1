@@ -15,9 +15,9 @@ import socket
 from urllib.parse import quote_plus
 
 
-VERSION = 'v1.0.8'
+VERSION = 'v1.0.9'
 API_VERSION = 'v1.0'
-PORT = int(os.environ.get('ULTRON_HTTP_PORT', 8080))
+PORT = int(os.environ.get('ULTRON_PORT', 8080))
 BASE_URL = os.environ.get('ULTRON_BASE_URL',
                           'http://{}:{}'.format(socket.getfqdn(), PORT))
 SECRET = os.environ.get('ULTRON_SECRET', '%$%^#^*!hgs(()adsdas&^)&%$^sftegbtr$%')
@@ -32,5 +32,5 @@ if DB_USER is not None and DB_PASS is not None:
 else:
     DB_URL = DB_HOST
 
-CELERY_BACKEND = os.environ.get('ACTVITY3_CELERY_BACKEND', 'redis://localhost/1')
-CELERY_BROKER = os.environ.get('ACTVITY3_CELERY_BROKER', 'pyamqp://')
+CELERY_BACKEND = os.environ.get('ULTRON_CELERY_BACKEND', 'redis://localhost/1')
+CELERY_BROKER = os.environ.get('ULTRON_CELERY_BROKER', 'pyamqp://')

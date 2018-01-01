@@ -26,23 +26,30 @@ from ultron.config import API_VERSION, PORT
 app = Flask(__name__)
 app.config['BUNDLE_ERRORS'] = True
 api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
-server= WSGIServer(('', PORT), app)
+server = WSGIServer(('', PORT), app)
 auth = Authentication()
 
 clients = list()
 
-# Custom filters ----------------------------------------------------------------
+
+# Custom filters ---------------------------------------------------------------
 
 _paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
 
 @app.template_filter('urlencode')
 def urlencode_filter(s):
+    """
+    Encodes string into url
+    """
     s = urllib.parse.quote(s.encode())
     return Markup(s)
 
 @app.template_filter()
 @evalcontextfilter
 def nl2br(eval_ctx, value):
+    """
+    new line to <br/>
+    """
     result = u'\n\n'.join(u'<p>%s</p>' % p.replace('\n', '<br>\n') \
         for p in _paragraph_re.split(escape(value)))
     if eval_ctx.autoescape:
@@ -50,19 +57,32 @@ def nl2br(eval_ctx, value):
         return result
 
 
-# Helper functions --------------------------------------------------------------
+# Helper functions -------------------------------------------------------------
 
 def form2list(string, regex='[^a-zA-Z0-9._-]', lowercase=True, uniq=True):
+    """
+    Takes a string and returns regex seperated list
+    """
     if lowercase:
         string = string.lower()
-
     lst = list(map(lambda x: x.strip(), re.split(regex, string)))
     while '' in lst: lst.remove('')
-
     return list(set(lst)) if uniq else lst
 
+def init_clients(clientnames, admin, reportname):
+    """
+    Initialize client objects from passed clientnames
+    """
+    valid, invalid = [], []
+    for x in clientnames:
+        try:
+            valid.append(Client(x, admin, reportname))
+        except Exception as e:
+            invalid.append([x, str(e)])
+    return valid, invalid
 
-# Core --------------------------------------------------------------------------
+
+# Core -------------------------------------------------------------------------
 
 class ReportsApi(Resource):
     """
@@ -122,10 +142,10 @@ class ReportsApi(Resource):
                 help='Expected comma seperated hostnames')
         args = parser.parse_args()
 
-        clientnames = form2list(args['clientnames'])
-        if len(clientnames) == 0:
-            abort(400, clientnames="No client found un report")
-        clients = list(map(lambda x: Client(x, admin, reportname), clientnames))
+        clients, not_found = init_clients(form2list(args['clientnames']),
+                                          admin, reportname)
+        if len(clients) == 0:
+            abort(400, clientnames="No clientname is DNS resolvable report")
 
         result = list(map(lambda x: {x.name: x.dict()}, clients))
         return result
@@ -146,7 +166,9 @@ class ReportsApi(Resource):
         else:
             clientnames = [clientname]
 
-        clients = list(map(lambda x: Client(x, admin, reportname), clientnames))
+        clients, not_found = init_clients(clientnames, admin, reportname)
+        if len(clients) == 0:
+            abort(400, clientnames="No clientname is DNS resolvable report")
 
         result = list(map(lambda x: {x.name: x.cleanup()}, clients))
         return result
@@ -202,27 +224,30 @@ class TaskApi(Resource):
             try:
                 kwargs = dict(json.loads(args['kwargs']))
             except Exception as e:
-                    abort(
-                        400,
-                        kwargs='{}. Expected JSON encoded key-value pairs'.format(e)
-                    )
+                abort(
+                    400,
+                    kwargs='{}. Expected JSON encoded key-value pairs'.format(e)
+                )
         else:
             kwargs = {}
 
         if args['clientnames'] is not None:
             clientnames = form2list(args['clientnames'])
-            if len(clientnames) == 0:
-                abort(400, clientnames="Expected comma seperated hostnames")
         else:
             reports = Reports()
             clientnames = list(map(
-                        lambda x: x['clientname'],
-                        reports.collection.find({'admin': admin.name,
-                            'name': reportname})
-                    ))
-        clients = list(map(lambda x: Client(x, admin, reportname), clientnames))
+                lambda x: x['clientname'],
+                reports.collection.find({
+                    'admin': admin.name,
+                    'name': reportname
+                })
+            ))
+        clients, not_found = init_clients(clientnames, admin, reportname)
+        if len(clients) == 0:
+            abort(400, clientnames="No clientname is DNS resolvable report")
 
-        result = list(map(lambda x: {x.name: x.perform(task, **kwargs)}, clients))
+        result = list(map(lambda x: {x.name: x.perform(task, **kwargs)},
+                                    clients))
         admin.log_history(request)
         return result
 
@@ -264,4 +289,4 @@ api.add_resource(TaskApi, '/<admin>/<reportname>/task')
 
 # Run app ----------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run(port=8080, debug=True)
+    app.run('0.0.0.0', port=PORT, debug=True)

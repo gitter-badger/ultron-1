@@ -9,7 +9,7 @@ Only Linux platform with systemd supports this.
 
 * [Python 3+](https://www.python.org)
 * [mongoDB](https://www.mongodb.com)
-* [Redis](https://redis.io)
+* [redis](https://redis.io)
 * [RabbitMQ](https://www.rabbitmq.com)
 * [tmux](https://github.com/tmux/tmux)
 * [sshpass](https://linux.die.net/man/1/sshpass)
@@ -38,11 +38,13 @@ First make sure your default python interpreter is python 3+
 
 ```bash
 # Ubuntu / Debian
-sudo apt-get install -y mongodb tmux rabbitmq-server build-essential libssl-dev libffi-dev python3-dev sshpass
+sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev sshpass
 
 # RHEL / CentOS / Fedora
-sudo yum install -y mongodb tmux rabbitmq-server gcc libffi-devel python3-devel openssl-devel sshpass
+sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass
 ```
+
+***Also install [redis](https://redis.io) and [RabbitMQ](https://www.rabbitmq.com) from their official site***
 
 
 * It is optional but recommended to use virtual python3 environment)
@@ -75,20 +77,20 @@ pip install ultron
 # Start important services
 
 sudo systemctl start mongod
-sudo systemctl start redis
+sudo systemctl start redis-server
 sudo systemctl start rabbitmq-server
 
 
 # Set admin password
 
-python
+python -c '
 from ultron.objects import Admin
 from werkzeug.security import generate_password_hash
 
-password = 'admin'    # Admin password
+password = "admin"    # Admin password
 
-Admin('admin').set('password', generate_password_hash(password, method='pbkdf2:sha256'))
-quit()
+Admin("admin").set("password", generate_password_hash(password, method="pbkdf2:sha256"))
+quit()'
 ```
 
 * Run application
@@ -100,53 +102,56 @@ ultron-run
 ### API docs
 
 ```bash
+base_url='http://localhost:8080'
+creds='admin:admin'
+
 # Create report
 
 curl --request POST \
-  --url http://localhost:8080/api/v1.0/admin/test/reports \
-  --form 'clientnames=localhost,pc' \
-  --user admin:admin
+  --url $base_url/api/v1.0/admin/test/reports \
+  --form 'clientnames=localhost,127.0.0.1' \
+  --user $creds
 
 
 # Get report
 
 curl --request GET \
-  --url http://localhost:8080/api/v1.0/admin/test/reports \
-  --user admin:admin
+  --url $base_url/api/v1.0/admin/test/reports \
+  --user $creds
 
 
 # Get client
 
 curl --request GET \
-  --url http://localhost:8080/api/v1.0/admin/test/reports/localhost \
-  --user admin:admin
+  --url $base_url/api/v1.0/admin/test/reports/localhost \
+  --user $creds
 
 
 # Start task (ping)
 
 curl --request POST \
-  --url http://localhost:8080/api/v1.0/admin/test/task \
+  --url $base_url/api/v1.0/admin/test/task \
   --form task=ping \
-  --user admin:admin
+  --user $creds
 
 
 # Finish current task
 
 curl --request GET \
-  --url http://localhost:8080/api/v1.0/admin/test/task \
-  --user admin:admin
+  --url $base_url/api/v1.0/admin/test/task \
+  --user $creds
 
 
 # Delete client
 
 curl --request DELETE \
-  --url http://localhost:8080/api/v1.0/admin/test/reports/localhost \
-  --user admin:admin
+  --url $base_url/api/v1.0/admin/test/reports/localhost \
+  --user $creds
 
 
 # Delete report
 
 curl --request DELETE \
-  --url http://localhost:8080/api/v1.0/admin/test/reports \
-  --user admin:admin
+  --url $base_url/api/v1.0/admin/test/reports \
+  --user $creds
 ```
