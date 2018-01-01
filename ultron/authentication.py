@@ -43,11 +43,12 @@ class Authentication:
         Restricts URL only to owner only
         """
         @wraps(func)
-        def decorated(_, admin, *args, **kwargs):
+        def decorated(obj, admin, *args, **kwargs):
             auth = request.authorization
-            if not auth or admin is not auth.username:
+            if not auth or admin != auth.username:
+                print(admin, auth.username)
                 abort(401, message='You are not authorized for this action!')
-            return func(*args, **kwargs)
+            return func(obj, admin, *args, **kwargs)
         return decorated
 
     def basic_auth(self):
