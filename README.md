@@ -102,14 +102,18 @@ ultron-run
 ### API docs
 
 ```bash
+# URL format for v1.0
+
 base_url='http://localhost:8080'
+report_name='ping_check'
+api_url=$base_url/api/v1.0/$USER/$report_name
 creds='admin:admin'
 
 
 # Create report
 
 curl --request POST \
-  --url $base_url/api/v1.0/admin/test/reports \
+  --url $api_url/reports \
   --form 'clientnames=localhost,127.0.0.1' \
   --user $creds
 
@@ -117,21 +121,21 @@ curl --request POST \
 # Get report
 
 curl --request GET \
-  --url $base_url/api/v1.0/admin/test/reports \
+  --url $api_url/reports \
   --user $creds
 
 
 # Get client
 
 curl --request GET \
-  --url $base_url/api/v1.0/admin/test/reports/localhost \
+  --url $api_url/reports/localhost \
   --user $creds
 
 
 # Start task (ping)
 
 curl --request POST \
-  --url $base_url/api/v1.0/admin/test/task \
+  --url $api_url/task \
   --form task=ping \
   --user $creds
 
@@ -139,20 +143,20 @@ curl --request POST \
 # Finish current task
 
 curl --request GET \
-  --url $base_url/api/v1.0/admin/test/task \
+  --url $api_url/task \
   --user $creds
 
 
 # Delete client
 
 curl --request DELETE \
-  --url $base_url/api/v1.0/admin/test/reports/localhost \
+  --url $api_url/reports/localhost \
   --user $creds
 
 
 # Delete report
 
 curl --request DELETE \
-  --url $base_url/api/v1.0/admin/test/reports \
+  --url $api_url/reports \
   --user $creds
 ```
