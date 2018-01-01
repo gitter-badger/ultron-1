@@ -12,13 +12,14 @@ __metaclass__ = type
 import re
 import json
 import urllib
+from bson import json_util
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
 from jinja2 import evalcontextfilter, Markup, escape
 from gevent.wsgi import WSGIServer
 from ultron.objects import Client, Admin
-from ultron.models import Reports
+from ultron.models import Reports, Admins
 from ultron.authentication import Authentication
 from ultron.config import API_VERSION, PORT
 
@@ -252,8 +253,42 @@ class TaskApi(Resource):
 
         result = list(map(lambda x: {x.name: x.perform(task, **kwargs)},
                                     clients))
-        admin.log_history(request)
-        return result
+        return json.loads(json.dumps(result, default=json_util.default))
+
+
+class AdminsApi(Resource):
+    """
+    Methods: GET
+    """
+    @auth.authenticate
+    def get(self):
+        """
+        List admins and properties
+        """
+        admins = Admins()
+        found = list(admins.collection.find({}, {'_id': 0, 'password': 0}))
+        return json.loads(json.dumps(found, default=json_util.default))
+
+
+class AdminApi(Resource):
+    """
+    Methods: GET, POST, DELETE
+    """
+    @auth.authenticate
+    def get(self, admin):
+        """
+        List admin properties
+        """
+        admins = Admins()
+        found = list(admins.collection.find({'name': admin},
+                                            {'_id': 0, 'password': 0}))
+        return json.loads(json.dumps(found, default=json_util.default))
+
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def delete(self, admin):
+        admin = Admin(admin)
+        return [{admin.name: admin.cleanup()}]
 
 
 # Error handlers ---------------------------------------------------------------
@@ -285,7 +320,8 @@ def handle_invalid_usage(error):
 
 # Routes -----------------------------------------------------------------------
 
-# api.add_resource(AdminApi, '/', '/<admin>')
+api.add_resource(AdminsApi, '/')
+api.add_resource(AdminApi, '/<admin>')
 api.add_resource(ReportsApi,
                  '/<admin>/<reportname>/reports',
                  '/<admin>/<reportname>/reports/<clientname>')

@@ -358,6 +358,7 @@ class Admin(BaseObject):
     """
     def __init__(self, name):
         self.name = name
+        self._ref = '{}/api/{}/{}'.format(BASE_URL, API_VERSION, name)
         BaseObject.__init__(self, 'Admins')
 
     def load(self):
@@ -367,41 +368,41 @@ class Admin(BaseObject):
         if not self.model().load(self):
             self.created = datetime.datetime.utcnow()
             self.restrict = []
-            self.history = []
+            # self.history = []
             self.save()
             self.model().load(self)
         self.last_login = datetime.datetime.utcnow()
         self.save()
         return True
 
-    def log_history(self, request):
-        """
-        Logs important url requests in history
-        """
-        data = {'method': request.method,
-                'path': request.path,
-                'args': request.args.to_dict(),
-                'form': request.form.to_dict(),
-                'datetime': datetime.datetime.utcnow()}
-        self.history.append(data)
-        return self.save()
-
-    def clean_history(self, start=None, end=None):
-        """
-        Cleans history
-        """
-        if start is not None and end is not None:
-            for x in self.history:
-                if x['datetime'] >= start and x['datetime'] <= end:
-                    self.history.pop(x)
-        elif start is not None:
-            for x in self.history[::-1]:
-                if x['datetime'] >= start:
-                    self.history.remove(x)
-        elif end is not None:
-            for x in self.history:
-                if x['datetime'] <= end:
-                    self.history.remove(x)
-        else:
-            self.history = []
-        return self.save()
+    # def log_history(self, request):
+    #     """
+    #     Logs important url requests in history
+    #     """
+    #     data = {'method': request.method,
+    #             'path': request.path,
+    #             'args': request.args.to_dict(),
+    #             'form': request.form.to_dict(),
+    #             'datetime': datetime.datetime.utcnow()}
+    #     self.history.append(data)
+    #     return self.save()
+    #
+    # def clean_history(self, start=None, end=None):
+    #     """
+    #     Cleans history
+    #     """
+    #     if start is not None and end is not None:
+    #         for x in self.history:
+    #             if x['datetime'] >= start and x['datetime'] <= end:
+    #                 self.history.pop(x)
+    #     elif start is not None:
+    #         for x in self.history[::-1]:
+    #             if x['datetime'] >= start:
+    #                 self.history.remove(x)
+    #     elif end is not None:
+    #         for x in self.history:
+    #             if x['datetime'] <= end:
+    #                 self.history.remove(x)
+    #     else:
+    #         self.history = []
+    #     return self.save()
