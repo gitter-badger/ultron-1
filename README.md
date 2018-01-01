@@ -99,15 +99,18 @@ quit()'
 ultron-run
 ```
 
-### API docs
+### API docs and examples
+
+* Example: Perform ping check on 2 hosts
 
 ```bash
 # URL format for v1.0
 
 base_url='http://localhost:8080'
+user='admin'
+pass='admin'
 report_name='ping_check'
-api_url=$base_url/api/v1.0/$USER/$report_name
-creds='admin:admin'
+api_url=$base_url/api/v1.0/$user/$report_name
 
 
 # Create report
@@ -115,21 +118,21 @@ creds='admin:admin'
 curl --request POST \
   --url $api_url/reports \
   --form 'clientnames=localhost,127.0.0.1' \
-  --user $creds
+  --user $user:$pass
 
 
 # Get report
 
 curl --request GET \
   --url $api_url/reports \
-  --user $creds
+  --user $user:$pass
 
 
 # Get client
 
 curl --request GET \
   --url $api_url/reports/localhost \
-  --user $creds
+  --user $user:$pass
 
 
 # Start task (ping)
@@ -137,26 +140,26 @@ curl --request GET \
 curl --request POST \
   --url $api_url/task \
   --form task=ping \
-  --user $creds
+  --user $user:$pass
 
 
 # Finish current task
 
 curl --request GET \
   --url $api_url/task \
-  --user $creds
+  --user $user:$pass
 
 
 # Delete client
 
 curl --request DELETE \
   --url $api_url/reports/localhost \
-  --user $creds
+  --user $user:$pass
 
 
 # Delete report
 
 curl --request DELETE \
   --url $api_url/reports \
-  --user $creds
+  --user $user:$pass
 ```

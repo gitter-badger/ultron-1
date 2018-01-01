@@ -86,7 +86,7 @@ def init_clients(clientnames, admin, reportname):
 
 class ReportsApi(Resource):
     """
-    Methods: GET, POST
+    Methods: GET, POST, DELETE
     """
     @auth.authenticate
     def get(self, admin, reportname, clientname=None):
@@ -132,6 +132,7 @@ class ReportsApi(Resource):
         return result
 
     @auth.authenticate
+    @auth.restrict_to_owner
     def post(self, admin, reportname):
         """
         Starts/loads clients for an ultron
@@ -150,6 +151,8 @@ class ReportsApi(Resource):
         result = list(map(lambda x: {x.name: x.dict()}, clients))
         return result
 
+    @auth.authenticate
+    @auth.restrict_to_owner
     def delete(self, admin, reportname, clientname=None):
         """
         Deletes a report
@@ -203,6 +206,7 @@ class TaskApi(Resource):
         return result
 
     @auth.authenticate
+    @auth.restrict_to_owner
     def post(self, admin, reportname):
         """
         Performs a task for specified clients in an ultron
@@ -281,6 +285,7 @@ def handle_invalid_usage(error):
 
 # Routes -----------------------------------------------------------------------
 
+# api.add_resource(AdminApi, '/', '/<admin>')
 api.add_resource(ReportsApi,
                  '/<admin>/<reportname>/reports',
                  '/<admin>/<reportname>/reports/<clientname>')

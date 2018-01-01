@@ -38,6 +38,18 @@ class Authentication:
             return func(*args, **kwargs)
         return decorated
 
+    def restrict_to_owner(self, func):
+        """
+        Restricts URL only to owner only
+        """
+        @wraps(func)
+        def decorated(_, admin, *args, **kwargs):
+            auth = request.authorization
+            if not auth or admin is not auth.username:
+                abort(401, message='You are not authorized for this action!')
+            return func(*args, **kwargs)
+        return decorated
+
     def basic_auth(self):
         """
         Local login
