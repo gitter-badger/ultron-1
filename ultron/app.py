@@ -264,4 +264,4 @@ api.add_resource(TaskApi, '/<admin>/<reportname>/task')
 
 # Run app ----------------------------------------------------------------------
 if __name__ == '__main__':
-    server.serve_forever()
+    app.run(port=8080, debug=True)
