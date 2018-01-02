@@ -57,4 +57,4 @@ wcwidth==0.1.7
 Werkzeug==0.9.6
 wrapt==1.10.11
 zope.interface==4.4.3
-simplepam==0.1.5
+pexpect==4.3.0

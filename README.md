@@ -68,7 +68,7 @@ pip install ultron
 # Start important services
 
 sudo systemctl start mongod
-sudo systemctl start redis-server
+sudo systemctl start redis
 sudo systemctl start rabbitmq-server
 ```
 
@@ -90,9 +90,11 @@ base_url='http://localhost:8080'
 report_name='ping_check'
 api_url=$base_url/api/v1.0/$user/$report_name
 
+
+# Credentials
+
 user=$USER
-echo -en 'Enter login password for '$user': '
-read -s pass
+echo -en 'Enter login password for '$user': ' && read -s pass
 
 
 # Create report

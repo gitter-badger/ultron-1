@@ -6,7 +6,7 @@ Email           : sayanarijit@gmail.com
 """
 
 from __future__ import absolute_import, unicode_literals
-import simplepam
+import pexpect
 from flask import request
 from flask_restful import abort
 from werkzeug.security import check_password_hash
@@ -70,8 +70,15 @@ class Authentication:
         auth = request.authorization
         if not auth or not auth.username or not auth.password:
             return False
-        if simplepam.authenticate(auth.username, auth.password):
-            Admin(auth.username)
-            return True
+        try:
+            p = pexpect.spawn('su', [auth.username, '-c', 'echo'], timeout=.5)
+            p.expect('[Pp]assword.*', timeout=.5)
+            p.sendline(auth.password)
+            p.interact()
+            p.close()
+            if p.exitstatus == 0:
+                Admin(auth.username)
+                return True
+        except:
+            pass
         return False
-
