@@ -300,7 +300,7 @@ class Client(BaseObject):
         self.reportname = reportname
         self.task = None
         self.result = None
-        self._ref = '{}/api/{}/{}/{}/reports/{}'.format(BASE_URL, API_VERSION,
+        self._ref = '{}/api/{}/report/{}/{}/{}'.format(BASE_URL, API_VERSION,
                                                 admin.name, reportname, name)
         BaseObject.__init__(self, 'Reports')
 
@@ -372,7 +372,7 @@ class Admin(BaseObject):
     """
     def __init__(self, name):
         self.name = name
-        self._ref = '{}/api/{}/{}'.format(BASE_URL, API_VERSION, name)
+        self._ref = '{}/api/{}/admin/{}'.format(BASE_URL, API_VERSION, name)
         BaseObject.__init__(self, 'Admins')
 
     def load(self):

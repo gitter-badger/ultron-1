@@ -87,8 +87,8 @@ ultron-run
 # URL format for v1.0
 
 base_url='http://localhost:8080'
-report_name='ping_check'
-api_url=$base_url/api/v1.0/$user/$report_name
+api_url=$base_url/api/v1.0
+reportname='ping_check'
 
 
 # Credentials
@@ -100,7 +100,7 @@ echo -en 'Enter login password for '$user': ' && read -s pass
 # Create report
 
 curl --request POST \
-  --url $api_url/reports \
+  --url $api_url/reports/$user/$reportname \
   --form 'clientnames=localhost,127.0.0.1' \
   --user $user:$pass
 
@@ -108,21 +108,21 @@ curl --request POST \
 # Get report
 
 curl --request GET \
-  --url $api_url/reports \
+  --url $api_url/reports/$user/$reportname \
   --user $user:$pass
 
 
 # Get client
 
 curl --request GET \
-  --url $api_url/reports/localhost \
+  --url $api_url/reports/$user/$reportname \
   --user $user:$pass
 
 
 # Start task (ping)
 
 curl --request POST \
-  --url $api_url/task \
+  --url $api_url/task/$user/$reportname \
   --form task=ping \
   --user $user:$pass
 
@@ -137,13 +137,13 @@ curl --request GET \
 # Delete client
 
 curl --request DELETE \
-  --url $api_url/reports/localhost \
+  --url $api_url/reports/$user/$reportname \
   --user $user:$pass
 
 
 # Delete report
 
 curl --request DELETE \
-  --url $api_url/reports \
+  --url $api_url/reports/$user/$reportname \
   --user $user:$pass
 ```

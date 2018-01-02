@@ -14,7 +14,7 @@ import json
 import urllib
 from bson.json_util import loads, dumps
 import json
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
 from jinja2 import evalcontextfilter, Markup, escape
@@ -32,6 +32,15 @@ server = WSGIServer(('', PORT), app)
 auth = Authentication()
 
 clients = list()
+
+
+# APP overwrites ---------------------------------------------------------------
+
+@api.representation('application/json')
+def output_json(data, code, headers=None):
+    resp = make_response(dumps(data), code)
+    resp.headers.extend(headers or {})
+    return resp
 
 
 # Custom filters ---------------------------------------------------------------
@@ -86,25 +95,88 @@ def init_clients(clientnames, admin, reportname):
 
 # Core -------------------------------------------------------------------------
 
+class ReportApi(Resource):
+    """
+    Methods: GET, POST, DELETE
+    """
+    @auth.authenticate
+    def get(self, admin, reportname, clientname):
+        """
+        Current state of client
+        """
+        reports = Reports()
+        found = reports.collection.find_one({
+            'clientname': clientname
+        })
+        return dict(result=found)
+
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def post(self, admin, reportname, clientname):
+        """
+        Update client state
+        """
+        parser = RequestParser()
+        parser.add_argument('data', type=str,
+                help='Expected BSON encoded key-value pairs')
+        args = parser.parse_args()
+        data = {}
+        if args['data'] is not None:
+            try:
+                data = dict(loads(args['data']))
+            except Exception as e:
+                abort(
+                    400,
+                    data='{}. Expected BSON encoded key-value pairs'.format(e)
+                )
+        try:
+            admin = Admin(admin)
+            client = Client(clientname, admin)
+        except Exception as e:
+            abort(
+                400,
+                data='{}. Invalid client name'.format(e)
+            )
+        client.update(data)
+        return dict(result=client.dict())
+
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def delete(self, admin, reportname, clientname):
+        """
+        Deletes a report
+        """
+        try:
+            admin = Admin(admin)
+            client = Client(clientname, admin, reportname)
+        except Exception as e:
+            abort(
+                400,
+                data='{}. Invalid client name'.format(e)
+            )
+        return dict(result=client.cleanup())
+
 class ReportsApi(Resource):
     """
     Methods: GET, POST, DELETE
     """
     @auth.authenticate
-    def get(self, admin, reportname, clientname=None):
+    def get(self, admin, reportname):
         """
         Returns current state of clients
         """
         admin = Admin(admin)
         parser = RequestParser()
+        parser.add_argument('clientnames', type=str,
+                help='Expected comma seperated hostnames')
         parser.add_argument('query', type=str,
                 help='Expected JSON formatted pymongo query')
         parser.add_argument('projection', type=str,
                 help='Expected JSON formatted pymongo projection')
         args = parser.parse_args()
 
-        if clientname is not None:
-            query = {'clientname': clientname}
+        if args['clientnames'] is not None:
+            query = {'name': {'$in': form2list(args['clientnames'])}}
         elif args['query'] is not None:
             try:
                 query = dict(loads(args['query']))
@@ -127,11 +199,10 @@ class ReportsApi(Resource):
         else:
             projection = {}
 
-        query.update({'admin': admin.name, 'name': reportname})
+        query = dict(admin=admin.name, name=reportname)
         projection.update({'_id': 0})
         reports = Reports()
-        results = dict(results=list(reports.collection.find(query, projection)))
-        return json.loads(dumps(results))
+        return dict(results=list(reports.collection.find(query, projection)))
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -149,35 +220,28 @@ class ReportsApi(Resource):
                                           admin, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
-
-        results = dict(results=list(map(lambda x: {x.name: x.dict()}, clients)))
-        return json.loads(dumps(results))
+        return dict(results=list(map(lambda x: {x.name: x.dict()}, clients)))
 
     @auth.authenticate
     @auth.restrict_to_owner
-    def delete(self, admin, reportname, clientname=None):
+    def delete(self, admin, reportname):
         """
         Deletes a report
         """
         admin = Admin(admin)
-
-        if clientname is None:
-            reports = Reports()
-            clientnames = list(map(
-                        lambda x: x['clientname'],
-                        reports.collection.find({'admin': admin.name,
-                            'name': reportname})
-                    ))
-        else:
-            clientnames = [clientname]
-
+        reports = Reports()
+        clientnames = list(map(
+            lambda x: x['clientname'],
+            reports.collection.find({
+                'admin': admin.name, 'name': reportname
+            })
+        ))
         clients, not_found = init_clients(clientnames, admin, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
-
-        results = dict(results=list(map(lambda x: {x.name: x.cleanup()},
-                                       clients)))
-        return json.loads(dumps(results))
+        return dict(results=list(map(
+            lambda x: {x.name: x.cleanup()}, clients
+        )))
 
 
 class TaskApi(Resource):
@@ -204,11 +268,7 @@ class TaskApi(Resource):
                 abort(400, clientnames="No client found")
         else:
             targets = clients
-
-        results = dict(results=list(map(
-            lambda x: {x.name: x.finished()}, targets
-        )))
-        return json.loads(dumps(results))
+        return dict(result={x.name: x.finished() for x in targets})
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -254,11 +314,7 @@ class TaskApi(Resource):
         clients, not_found = init_clients(clientnames, admin, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
-
-        results = dict(results=list(map(
-            lambda x: {x.name: x.perform(task, **kwargs)}, clients
-        )))
-        return json.loads(dumps(results))
+        return dict(result={x.name: x.perform(task, **kwargs) for x in clients})
 
 
 class AdminsApi(Resource):
@@ -271,10 +327,9 @@ class AdminsApi(Resource):
         List admins and properties
         """
         admins = Admins()
-        results = dict(results=list(admins.collection.find(
+        return dict(results=list(admins.collection.find(
             {}, {'_id': 0, 'password': 0}
         )))
-        return json.loads(dumps(results))
 
 
 class AdminApi(Resource):
@@ -287,12 +342,13 @@ class AdminApi(Resource):
         List admin properties
         """
         admins = Admins()
-        results = dict(results=list(admins.collection.find(
+        result = dict(result=admins.collection.find_one(
             {'name': admin}, {'_id': 0, 'password': 0})
-        ))
+        )
         reports = Reports()
-        results['results'][0]['reports'] = reports.list(admin, unique=True)
-        return json.loads(dumps(results))
+        if result['result'] is not None:
+            result['result']['reportnames'] = reports.list(admin, unique=True)
+        return result
 
     @auth.authenticate
     @auth.restrict_to_ultron_admin
@@ -310,19 +366,20 @@ class AdminApi(Resource):
             except Exception as e:
                 abort(
                     400,
-                    data='{}. Expected JSON encoded key-value pairs'.format(e)
+                    data='{}. Expected BSON encoded key-value pairs'.format(e)
                 )
         admin = Admin(admin)
         admin.update(data)
-        results = dict(results=[{admin.name: admin.dict()}])
-        return json.loads(dumps(results))
+        return dict(result=admin.dict())
 
     @auth.authenticate
     @auth.restrict_to_ultron_admin
     def delete(self, admin):
+        """
+        Deletes admin
+        """
         admin = Admin(admin)
-        results = dict(results=[{admin.name: admin.cleanup()}])
-        return json.loads(dumps(results))
+        return dict(result=admin.cleanup())
 
 
 # Error handlers ---------------------------------------------------------------
@@ -354,12 +411,11 @@ def handle_invalid_usage(error):
 
 # Routes -----------------------------------------------------------------------
 
-api.add_resource(AdminsApi, '/')
-api.add_resource(AdminApi, '/<admin>')
-api.add_resource(ReportsApi,
-                 '/<admin>/<reportname>/reports',
-                 '/<admin>/<reportname>/reports/<clientname>')
-api.add_resource(TaskApi, '/<admin>/<reportname>/task')
+api.add_resource(ReportApi, '/report/<admin>/<reportname>/<clientname>')
+api.add_resource(ReportsApi, '/reports/<admin>/<reportname>')
+api.add_resource(TaskApi, '/task/<admin>/<reportname>')
+api.add_resource(AdminsApi, '/admins')
+api.add_resource(AdminApi, '/admin/<admin>')
 
 
 # Run app ----------------------------------------------------------------------
