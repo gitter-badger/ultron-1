@@ -12,6 +12,7 @@ import datetime
 from bson import json_util
 from ultron import tasks, models
 from ultron.config import BASE_URL, API_VERSION
+from werkzeug.security import generate_password_hash
 
 
 # class Client:
@@ -366,6 +367,9 @@ class Admin(BaseObject):
         Loads admin from DB else creates new
         """
         if not self.model().load(self):
+            self.password = generate_password_hash(
+                    'admin', method="pbkdf2:sha256"
+            )
             self.created = datetime.datetime.utcnow()
             self.restrict = []
             # self.history = []

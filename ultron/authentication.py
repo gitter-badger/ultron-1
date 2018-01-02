@@ -6,6 +6,7 @@ Email           : sayanarijit@gmail.com
 """
 
 from __future__ import absolute_import, unicode_literals
+import simplepam
 from flask import request
 from flask_restful import abort
 from werkzeug.security import check_password_hash
@@ -46,7 +47,6 @@ class Authentication:
         def decorated(obj, admin, *args, **kwargs):
             auth = request.authorization
             if not auth or admin != auth.username:
-                print(admin, auth.username)
                 abort(401, message='You are not authorized for this action!')
             return func(obj, admin, *args, **kwargs)
         return decorated
@@ -56,16 +56,22 @@ class Authentication:
         Local login
         """
         auth = request.authorization
-
         if not auth or not auth.username or not auth.password:
             return False
-
         if auth.username not in admins.list():
             return False
-
         admin = Admin(auth.username)
+        return check_password_hash(admin.password, auth.password)
 
-        if check_password_hash(admin.password, auth.password):
+    def pam_auth(self):
+        """
+        Unix PAM authentication
+        """
+        auth = request.authorization
+        if not auth or not auth.username or not auth.password:
+            return False
+        if simplepam.authenticate(auth.username, auth.password):
+            Admin(auth.username)
             return True
-
         return False
+
