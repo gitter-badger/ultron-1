@@ -290,6 +290,8 @@ class AdminApi(Resource):
         results = dict(results=list(admins.collection.find(
             {'name': admin}, {'_id': 0, 'password': 0})
         ))
+        reports = Reports()
+        results['results'][0]['reports'] = reports.list(admin, unique=True)
         return json.loads(dumps(results))
 
     @auth.authenticate
