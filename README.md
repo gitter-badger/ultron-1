@@ -46,104 +46,123 @@ sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass vi
 
 ***Also install [MongoDB](https://www.mongodb.com), [redis](https://redis.io) and [RabbitMQ](https://www.rabbitmq.com) from their official site***
 
-
 * It is optional but recommended to use virtual python3 environment
 
 ```bash
 # Activate virtual environment
-
 virtualenv -p python3 ~/.venv
 source ~/.venv/bin/activate
 ```
 
-
-* Install and setup
+* Install
 
 ```bash
-# Install package
-
 pip install ultron
-
-
-# Start important services
-
-sudo systemctl start mongod
-sudo systemctl start redis
-sudo systemctl start rabbitmq-server
 ```
-
 
 * Run application
 
-```
+```bash
+# Start important services
+sudo systemctl start mongod
+sudo systemctl start redis
+sudo systemctl start rabbitmq-server
+
+# Run app
 ultron-run
 ```
 
+
 ### API docs and examples
+
+* URL format for v1.0
+
+```bash
+base_url='http://localhost:8080'
+api_url=$base_url/api/v1.0
+```
+
+* Credentials
+
+```bash
+user=$USER
+echo -en 'Enter login password for '$user': ' && read -s pass
+```
 
 * Example: Perform ping check on 2 hosts
 
 ```bash
-# URL format for v1.0
-
-base_url='http://localhost:8080'
-api_url=$base_url/api/v1.0
 reportname='ping_check'
 
-
-# Credentials
-
-user=$USER
-echo -en 'Enter login password for '$user': ' && read -s pass
-
-
 # Create report
-
 curl --request POST \
   --url $api_url/reports/$user/$reportname \
   --form 'clientnames=localhost,127.0.0.1' \
   --user $user:$pass
 
-
 # Get report
-
 curl --request GET \
   --url $api_url/reports/$user/$reportname \
   --user $user:$pass
-
 
 # Get client
-
 curl --request GET \
-  --url $api_url/reports/$user/$reportname \
+  --url $api_url/report/$user/$reportname/localhost \
   --user $user:$pass
 
+# Modify client state
+curl --request POST \
+  --url $api_url/report/$user/$reportname/localhost \
+  --form 'data={"newattr": "test"}' \
+  --user $user:$pass
 
 # Start task (ping)
-
 curl --request POST \
   --url $api_url/task/$user/$reportname \
   --form task=ping \
   --user $user:$pass
 
-
 # Finish current task
-
 curl --request GET \
   --url $api_url/task \
   --user $user:$pass
 
-
 # Delete client
+curl --request DELETE \
+  --url $api_url/report/$user/$reportname/localhost \
+  --user $user:$pass
 
+# Delete report
 curl --request DELETE \
   --url $api_url/reports/$user/$reportname \
   --user $user:$pass
+```
 
 
-# Delete report
+* Example: Admin management
 
+***Note: Non readonly features are restricted to ultron admin only***
+***If auth method is 'pam_auth', ultron admin is someone who is running the server***
+
+```bash
+# Get all admins
+curl --request GET \
+  --url $api_url/admins \
+  --user $user:$pass
+
+# Get one admin info and all his created report names
+curl --request GET \
+  --url $api_url/admin/$user \
+  --user $user:$pass
+
+# Modify admin parameters
+curl --request POST \
+  --url $api_url/admin/$user \
+  --form 'data={"newattr": "test"}' \
+  --user $user:$pass
+
+# Delete admin
 curl --request DELETE \
-  --url $api_url/reports/$user/$reportname \
+  --url $api_url/admin/$user \
   --user $user:$pass
 ```
