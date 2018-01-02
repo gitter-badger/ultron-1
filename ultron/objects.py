@@ -7,9 +7,8 @@ Email           : sayanarijit@gmail.com
 
 from __future__ import absolute_import, unicode_literals
 import socket
-import json
 import datetime
-from bson import json_util
+from bson.json_util import dumps
 from ultron import tasks, models
 from ultron.config import BASE_URL, API_VERSION
 from werkzeug.security import generate_password_hash
@@ -227,7 +226,7 @@ class BaseObject(object):
         data = self.__dict__.copy()
         for k, v in data.copy().items():
             try:
-                json.dumps([v], default=json_util.default)
+                dumps([v])
             except:
                 data[k] = None
         return data
@@ -236,7 +235,7 @@ class BaseObject(object):
         """
         Formats into json
         """
-        return json.dumps(self.dict(), default=json_util.default, *args, **kwargs)
+        return dumps(self.dict(), *args, **kwargs)
 
     def save(self):
         """
@@ -263,12 +262,26 @@ class BaseObject(object):
     def set(self, attr, value):
         """
         Used to change attributes of admin. Returns false if no action required
-        and True if state changed successfully,
+        and True if state changed successfully.
         """
         if hasattr(self, attr):
             if getattr(self, attr) == value:
                 return False
         setattr(self, attr, value)
+        self.save()
+        return True
+
+    def update(self, data):
+        """
+        Used to update multiple attributes at once.
+        Returns false if no action required
+        and True if state changed successfully.
+        """
+        if '_id' in data: del data['_id']
+        old = self.__dict__.copy()
+        self.__dict__.update(data)
+        if self.__dict__ == old:
+            return False
         self.save()
         return True
 

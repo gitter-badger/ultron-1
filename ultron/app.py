@@ -12,7 +12,8 @@ __metaclass__ = type
 import re
 import json
 import urllib
-from bson import json_util
+from bson.json_util import loads, dumps
+import json
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
@@ -106,7 +107,7 @@ class ReportsApi(Resource):
             query = {'clientname': clientname}
         elif args['query'] is not None:
             try:
-                query = dict(json.loads(args['query']))
+                query = dict(loads(args['query']))
             except Exception as e:
                 abort(
                     400,
@@ -117,7 +118,7 @@ class ReportsApi(Resource):
 
         if args['projection'] is not None:
             try:
-                projection = dict(json.loads(args['projection']))
+                projection = dict(loads(args['projection']))
             except Exception as e:
                 abort(
                     400,
@@ -129,8 +130,8 @@ class ReportsApi(Resource):
         query.update({'admin': admin.name, 'name': reportname})
         projection.update({'_id': 0})
         reports = Reports()
-        result = list(reports.collection.find(query, projection))
-        return result
+        results = dict(results=list(reports.collection.find(query, projection)))
+        return json.loads(dumps(results))
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -149,8 +150,8 @@ class ReportsApi(Resource):
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
 
-        result = list(map(lambda x: {x.name: x.dict()}, clients))
-        return result
+        results = dict(results=list(map(lambda x: {x.name: x.dict()}, clients)))
+        return json.loads(dumps(results))
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -174,8 +175,9 @@ class ReportsApi(Resource):
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
 
-        result = list(map(lambda x: {x.name: x.cleanup()}, clients))
-        return result
+        results = dict(results=list(map(lambda x: {x.name: x.cleanup()},
+                                       clients)))
+        return json.loads(dumps(results))
 
 
 class TaskApi(Resource):
@@ -203,8 +205,10 @@ class TaskApi(Resource):
         else:
             targets = clients
 
-        result = list(map(lambda x: {x.name: x.finished()}, targets))
-        return result
+        results = dict(results=list(map(
+            lambda x: {x.name: x.finished()}, targets
+        )))
+        return json.loads(dumps(results))
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -227,7 +231,7 @@ class TaskApi(Resource):
         task = args['task']
         if args['kwargs'] is not None:
             try:
-                kwargs = dict(json.loads(args['kwargs']))
+                kwargs = dict(loads(args['kwargs']))
             except Exception as e:
                 abort(
                     400,
@@ -251,9 +255,10 @@ class TaskApi(Resource):
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
 
-        result = list(map(lambda x: {x.name: x.perform(task, **kwargs)},
-                                    clients))
-        return json.loads(json.dumps(result, default=json_util.default))
+        results = dict(results=list(map(
+            lambda x: {x.name: x.perform(task, **kwargs)}, clients
+        )))
+        return json.loads(dumps(results))
 
 
 class AdminsApi(Resource):
@@ -266,8 +271,10 @@ class AdminsApi(Resource):
         List admins and properties
         """
         admins = Admins()
-        found = list(admins.collection.find({}, {'_id': 0, 'password': 0}))
-        return json.loads(json.dumps(found, default=json_util.default))
+        results = dict(results=list(admins.collection.find(
+            {}, {'_id': 0, 'password': 0}
+        )))
+        return json.loads(dumps(results))
 
 
 class AdminApi(Resource):
@@ -280,15 +287,40 @@ class AdminApi(Resource):
         List admin properties
         """
         admins = Admins()
-        found = list(admins.collection.find({'name': admin},
-                                            {'_id': 0, 'password': 0}))
-        return json.loads(json.dumps(found, default=json_util.default))
+        results = dict(results=list(admins.collection.find(
+            {'name': admin}, {'_id': 0, 'password': 0})
+        ))
+        return json.loads(dumps(results))
 
     @auth.authenticate
-    @auth.restrict_to_owner
+    @auth.restrict_to_ultron_admin
+    def post(self, admin):
+        """
+        Change admin properties
+        """
+        parser = RequestParser()
+        parser.add_argument('data', type=str, required=True,
+                help='Data is missing')
+        args = parser.parse_args()
+        if args['data'] is not None:
+            try:
+                data = dict(loads(args['data']))
+            except Exception as e:
+                abort(
+                    400,
+                    data='{}. Expected JSON encoded key-value pairs'.format(e)
+                )
+        admin = Admin(admin)
+        admin.update(data)
+        results = dict(results=[{admin.name: admin.dict()}])
+        return json.loads(dumps(results))
+
+    @auth.authenticate
+    @auth.restrict_to_ultron_admin
     def delete(self, admin):
         admin = Admin(admin)
-        return [{admin.name: admin.cleanup()}]
+        results = dict(results=[{admin.name: admin.cleanup()}])
+        return json.loads(dumps(results))
 
 
 # Error handlers ---------------------------------------------------------------

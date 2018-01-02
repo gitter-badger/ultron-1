@@ -6,7 +6,9 @@ Email           : sayanarijit@gmail.com
 """
 
 from __future__ import absolute_import, unicode_literals
+import os
 import pexpect
+import simplepam
 from flask import request
 from flask_restful import abort
 from werkzeug.security import check_password_hash
@@ -41,7 +43,7 @@ class Authentication:
 
     def restrict_to_owner(self, func):
         """
-        Restricts URL only to owner only
+        Decorator to restrict URL only to owner only
         """
         @wraps(func)
         def decorated(obj, admin, *args, **kwargs):
@@ -49,6 +51,18 @@ class Authentication:
             if not auth or admin != auth.username:
                 abort(401, message='You are not authorized for this action!')
             return func(obj, admin, *args, **kwargs)
+        return decorated
+
+    def restrict_to_ultron_admin(self, func):
+        """
+        Decorator to restrict URL only to ultron admin only
+        """
+        @wraps(func)
+        def decorated(obj, *args, **kwargs):
+            auth = request.authorization
+            if not auth or os.getlogin() != auth.username:
+                abort(401, message='You are not authorized for this action!')
+            return func(obj, *args, **kwargs)
         return decorated
 
     def basic_auth(self):
