@@ -17,7 +17,7 @@ from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
 from jinja2 import evalcontextfilter, Markup, escape
 from gevent.wsgi import WSGIServer
-from ultron.objects import Client, Admin
+from ultron.objects import Client, Admin, TaskPool
 from ultron.models import Reports, Admins
 from ultron.authentication import Authentication
 from ultron.config import API_VERSION, PORT
@@ -29,7 +29,7 @@ api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
 server = WSGIServer(('', PORT), app)
 auth = Authentication()
 
-clients = list()
+task_pool = TaskPool()
 
 
 # APP overwrites ---------------------------------------------------------------
@@ -261,12 +261,19 @@ class TaskApi(Resource):
 
         if args['clientnames'] is not None:
             clientnames = form2list(args['clientnames'])
-            targets = list(map(lambda x: x.name in clientnames, clients))
-            if len(targets) == 0:
-                abort(400, clientnames="No client found")
         else:
-            targets = clients
-        return dict(result={x.name: x.finished() for x in targets})
+            reports = Reports()
+            clientnames = list(map(
+                lambda x: x['clientname'],
+                reports.collection.find({
+                    'admin': admin.name,
+                    'name': reportname
+                })
+            ))
+        clients, not_found = init_clients(clientnames, admin, reportname)
+        if len(clients) == 0:
+            abort(400, clientnames="No clientname is DNS resolvable")
+        return dict(result={x.name: x.finished(task_pool) for x in clients})
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -311,8 +318,8 @@ class TaskApi(Resource):
             ))
         clients, not_found = init_clients(clientnames, admin, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No clientname is DNS resolvable report")
-        return dict(result={x.name: x.perform(task, **kwargs) for x in clients})
+            abort(400, clientnames="No clientname is DNS resolvable")
+        return dict(result={x.name: x.perform(task, task_pool, **kwargs) for x in clients})
 
 
 class AdminsApi(Resource):

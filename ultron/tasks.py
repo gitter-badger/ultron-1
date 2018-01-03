@@ -10,42 +10,19 @@ from subprocess import Popen, PIPE
 from shlex import quote
 from celery import Celery
 from ultron.config import CELERY_BACKEND, CELERY_BROKER
+from ultron import objects
 
 
 celery = Celery('tasks', backend=CELERY_BACKEND, broker=CELERY_BROKER)
 
 
-class Tasks(object):
-    """
-    Just to store all tasts as celery won't accept objects anymore
-    """
-    def __init__(self):
-        self.pool = {}
-
-    def register(self, client, task):
-        if client.reportname not in self.pool:
-            self.pool[client.reportname] = {}
-        report = self.pool[client.reportname]
-        report[client.name] = task
-
-    def __getattr__(self, attr):
-        def decorated(client):
-            if client.reportname not in self.pool:
-                return None
-            report = self.pool[client.reportname]
-            if client.name not in report:
-                return None
-            task = report[client.name]
-            if hasattr(task, attr):
-                return getattr(task, attr)
-        return decorated
-
-
 @celery.task
-def ping(client, admin):
+def ping(clientname, adminname, reportname):
     """
     Function to ping referenced client
     """
+    admin = objects.Admin(adminname)
+    client = objects.Client(clientname, admin, reportname)
     # Prepare shell command
     _options = client.get('ping_options', ['-c1', '-w5'])
     target = client.get('fqdn', client.name)
@@ -70,10 +47,12 @@ def ping(client, admin):
 
 
 @celery.task
-def ssh(client, admin, command, timeout=120, tty=False, stdin=None, hide=[]):
+def ssh(clientname, adminname, reportname, command, timeout=120, tty=False, stdin=None, hide=[]):
     """
     Function to execute command over SSH protocol
     """
+    admin = objects.Admin(adminname)
+    client = objects.Client(clientname, admin, reportname)
     # Prepare shell command
     _options = client.get('ssh_options', ['-o', 'StrictHostKeyChecking=no'])
     target = client.get('fqdn', client.name)
