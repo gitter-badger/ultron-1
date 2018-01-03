@@ -9,13 +9,39 @@ import os
 from subprocess import Popen, PIPE
 from shlex import quote
 from celery import Celery
-from ultron import objects, models
 from ultron.config import CELERY_BACKEND, CELERY_BROKER
 
-app = Celery('tasks', backend=CELERY_BACKEND, broker=CELERY_BROKER)
+
+celery = Celery('tasks', backend=CELERY_BACKEND, broker=CELERY_BROKER)
 
 
-@app.task
+class Tasks(object):
+    """
+    Just to store all tasts as celery won't accept objects anymore
+    """
+    def __init__(self):
+        self.pool = {}
+
+    def register(self, client, task):
+        if client.reportname not in self.pool:
+            self.pool[client.reportname] = {}
+        report = self.pool[client.reportname]
+        report[client.name] = task
+
+    def __getattr__(self, attr):
+        def decorated(client):
+            if client.reportname not in self.pool:
+                return None
+            report = self.pool[client.reportname]
+            if client.name not in report:
+                return None
+            task = report[client.name]
+            if hasattr(task, attr):
+                return getattr(task, attr)
+        return decorated
+
+
+@celery.task
 def ping(client, admin):
     """
     Function to ping referenced client
@@ -43,7 +69,7 @@ def ping(client, admin):
             'exit_status': exit_status}
 
 
-@app.task
+@celery.task
 def ssh(client, admin, command, timeout=120, tty=False, stdin=None, hide=[]):
     """
     Function to execute command over SSH protocol

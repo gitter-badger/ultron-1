@@ -8,7 +8,6 @@ Email           : sayanarijit@gmail.com
 from __future__ import absolute_import, unicode_literals
 import os
 import pexpect
-import simplepam
 from flask import request
 from flask_restful import abort
 from werkzeug.security import check_password_hash

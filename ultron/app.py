@@ -10,11 +10,9 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import re
-import json
 import urllib
 from bson.json_util import loads, dumps
-import json
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
 from jinja2 import evalcontextfilter, Markup, escape
@@ -105,9 +103,9 @@ class ReportApi(Resource):
         Current state of client
         """
         reports = Reports()
-        found = reports.collection.find_one({
-            'clientname': clientname
-        })
+        found = reports.collection.find_one(
+            {'clientname': clientname}, {'_id': 0, '_modelname': 0}
+        )
         return dict(result=found)
 
     @auth.authenticate
@@ -131,7 +129,7 @@ class ReportApi(Resource):
                 )
         try:
             admin = Admin(admin)
-            client = Client(clientname, admin)
+            client = Client(clientname, admin, reportname)
         except Exception as e:
             abort(
                 400,
@@ -200,7 +198,7 @@ class ReportsApi(Resource):
             projection = {}
 
         query = dict(admin=admin.name, name=reportname)
-        projection.update({'_id': 0})
+        projection.update({'_id': 0, '_modelname': 0})
         reports = Reports()
         return dict(results=list(reports.collection.find(query, projection)))
 
@@ -328,7 +326,7 @@ class AdminsApi(Resource):
         """
         admins = Admins()
         return dict(results=list(admins.collection.find(
-            {}, {'_id': 0, 'password': 0}
+            {}, {'_id': 0, 'password': 0, '_modelname': 0}
         )))
 
 

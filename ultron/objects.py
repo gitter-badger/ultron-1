@@ -204,7 +204,7 @@ class BaseObject(object):
     Parent class for all objects
     """
     def __init__(self, modelname):
-        self.modelname = modelname
+        self._modelname = modelname
         self.load()
 
     def __repr__(self):
@@ -217,7 +217,7 @@ class BaseObject(object):
         """
         Returns an instance of model
         """
-        return getattr(models, self.modelname)()
+        return getattr(models, self._modelname)()
 
     def dict(self):
         """
@@ -225,6 +225,8 @@ class BaseObject(object):
         """
         data = self.__dict__.copy()
         for k, v in data.copy().items():
+            if k.startswith('_'):
+                del data[k]
             try:
                 dumps([v])
             except:
@@ -298,9 +300,9 @@ class Client(BaseObject):
         self.name = name
         self.admin = admin.name
         self.reportname = reportname
-        self.task = None
+        self._task = None
         self.result = None
-        self._ref = '{}/api/{}/report/{}/{}/{}'.format(BASE_URL, API_VERSION,
+        self.ref_url = '{}/api/{}/report/{}/{}/{}'.format(BASE_URL, API_VERSION,
                                                 admin.name, reportname, name)
         BaseObject.__init__(self, 'Reports')
 
@@ -337,9 +339,9 @@ class Client(BaseObject):
         method = getattr(tasks, task)
 
         # Start the task
-        self.task = method.delay(self, self.admin, **kwargs)
+        self._task = method.delay(self, self.admin, **kwargs)
         self.result = {'task': task, 'exception': None, 'finished': False,
-                       'state': self.task.state, 'result': None}
+                       'state': self._task.state, 'result': None}
         self.save()
         return True
 
@@ -348,20 +350,20 @@ class Client(BaseObject):
         Returns the status of last performed task.
         If the task is finished, updates the current state.
         """
-        if self.task is None:
+        if self._task is None:
             return True
 
-        if not self.task.ready():
-            self.result['state'] = self.task.state
+        if not self._task.ready():
+            self.result['state'] = self._task.state
             return False
 
         try:
-            self.result['result'] = self.task.get()
+            self.result['result'] = self._task.get()
         except Exception as e:
             self.result['exception'] = str(e)
         finally:
-            self.result.update({'finished': True, 'state': self.task.state})
-            self.task = None
+            self.result.update({'finished': True, 'state': self._task.state})
+            self._task = None
             self.save()
         return True
 
@@ -372,7 +374,7 @@ class Admin(BaseObject):
     """
     def __init__(self, name):
         self.name = name
-        self._ref = '{}/api/{}/admin/{}'.format(BASE_URL, API_VERSION, name)
+        self.ref_url = '{}/api/{}/admin/{}'.format(BASE_URL, API_VERSION, name)
         BaseObject.__init__(self, 'Admins')
 
     def load(self):
