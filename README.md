@@ -38,7 +38,7 @@ First make sure your default python interpreter is python 3+
 
 ```bash
 # Ubuntu / Debian
-sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev sshpass virtualennv
+sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev sshpass virtualenv
 
 # RHEL / CentOS / Fedora
 sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass virtualenv
@@ -92,6 +92,7 @@ echo -en 'Enter login password for '$user': ' && read -s pass
 * Example: Perform ping check on 2 hosts
 
 ```bash
+# Report name
 reportname='ping_check'
 
 # Create report
