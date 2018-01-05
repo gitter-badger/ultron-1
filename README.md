@@ -124,7 +124,7 @@ curl --request POST \
 
 # Finish current task
 curl --request GET \
-  --url $api_url/task \
+  --url $api_url/task/$user/$reportname \
   --user $user:$pass
 
 # Delete client
