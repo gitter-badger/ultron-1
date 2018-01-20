@@ -27,8 +27,8 @@ setup(
     version=VERSION,
     description='Just another infrastructure management tool',
     long_description=long_description,
-    url='https://github.com/sayanarijit/ultron',
-    download_url='https://github.com/sayanarijit/ultron/archive/{}.tar.gz'.format(VERSION),
+    url='https://github.com/repidstack/ultron',
+    download_url='https://github.com/rapidstack/ultron/archive/{}.tar.gz'.format(VERSION),
     author='Arijit Basu',
     author_email='sayanarijit@gmail.com',
     classifiers=[
