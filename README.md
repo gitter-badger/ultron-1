@@ -4,7 +4,7 @@
 
 # ultron
 
-Just another infrastructure management tool
+Not just another infrastructure management tool
 
 
 ### Dependencies

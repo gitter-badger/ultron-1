@@ -25,7 +25,7 @@ with open('requirements.txt') as requirements_file:
 setup(
     name='ultron',
     version=VERSION,
-    description='Just another infrastructure management tool',
+    description='Not just another infrastructure management tool',
     long_description=long_description,
     url='https://github.com/repidstack/ultron',
     download_url='https://github.com/rapidstack/ultron/archive/{}.tar.gz'.format(VERSION),
