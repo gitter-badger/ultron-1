@@ -27,7 +27,7 @@ setup(
     version=VERSION,
     description='Not just another infrastructure management tool',
     long_description=long_description,
-    url='https://github.com/repidstack/ultron',
+    url='https://github.com/rapidstack/ultron',
     download_url='https://github.com/rapidstack/ultron/archive/{}.tar.gz'.format(VERSION),
     author='Arijit Basu',
     author_email='sayanarijit@gmail.com',
