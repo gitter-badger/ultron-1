@@ -1,5 +1,5 @@
 [![PyPI version](https://img.shields.io/pypi/v/ultron.svg)](https://pypi.python.org/pypi/ultron)
-[![Build Status](https://travis-ci.org/repidstack/ultron.svg?branch=master)](https://travis-ci.org/rapidstack/ultron)
+[![Build Status](https://travis-ci.org/rapidstack/ultron.svg?branch=master)](https://travis-ci.org/rapidstack/ultron)
 
 
 # ultron
