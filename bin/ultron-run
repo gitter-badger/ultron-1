@@ -1,4 +1,28 @@
-#!/bin/sh
+#!/bin/bash
 
+
+# Configure paths
+
+[ "$DBPATH" ] || DBPATH="$HOME/.ultron_data"
+file $DBPATH || mkdir -v $DBPATH
+
+
+# Check CLI dependencies
+
+deps=(python tmux mongod celery sshpass redis-server)
+
+for dep in ${deps[*]}; do
+    if ! which $dep; then
+        echo "error: $dep: command not found in \$PATH. Is it installed yet?" 1>&2
+        exit 1
+    fi
+done
+
+
+# Start app
+
+echo "Starting ultron..."
 tmux new -s ultron 'celery -A ultron.tasks worker --loglevel=info' \; \
-    split-window 'python -c "from ultron.app import server; server.serve_forever()"'
+    split-window 'python -c "from ultron.app import server; server.serve_forever()"' \; \
+    split-window 'mongod --dbpath '$DBPATH \; \
+    split-window 'redis-server'

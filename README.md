@@ -14,7 +14,6 @@ Only Linux platform with systemd supports this.
 * [Python 3+](https://www.python.org)
 * [mongoDB](https://www.mongodb.com)
 * [redis](https://redis.io)
-* [RabbitMQ](https://www.rabbitmq.com)
 * [tmux](https://github.com/tmux/tmux)
 * [sshpass](https://linux.die.net/man/1/sshpass)
 
@@ -30,8 +29,8 @@ Only Linux platform with systemd supports this.
 | mongoDB username | ULTRON_DB_USER | None |
 | mongoDB password | ULTRON_DB_PASS | None |
 | mongoDB host | ULTRON_DB_HOST | 'localhost:27017' |
-| Celery backend | ULTRON_CELERY_BACKEND | 'redis://localhost/1' |
-| Celery broker | ULTRON_CELERY_BROKER | 'pyamqp://' |
+| Celery backend | ULTRON_CELERY_BACKEND | 'rpc://' |
+| Celery broker | ULTRON_CELERY_BROKER | 'redis://localhost:6379/' |
 
 
 ### Installation
@@ -48,7 +47,7 @@ sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev s
 sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass virtualenv
 ```
 
-***Also install [MongoDB](https://www.mongodb.com), [redis](https://redis.io) and [RabbitMQ](https://www.rabbitmq.com) from their official site***
+***Also install [MongoDB](https://www.mongodb.com) and [redis](https://redis.io) from their official site***
 
 * It is optional but recommended to use virtual python3 environment
 
@@ -67,10 +66,8 @@ pip install ultron
 * Run application
 
 ```bash
-# Start important services
+# Start database
 sudo systemctl start mongod
-sudo systemctl start redis
-sudo systemctl start rabbitmq-server
 
 # Run app
 ultron-run

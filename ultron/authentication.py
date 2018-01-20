@@ -45,11 +45,11 @@ class Authentication:
         Decorator to restrict URL only to owner only
         """
         @wraps(func)
-        def decorated(obj, admin, *args, **kwargs):
+        def decorated(obj, adminname, *args, **kwargs):
             auth = request.authorization
-            if not auth or admin != auth.username:
+            if not auth or adminname != auth.username:
                 abort(401, message='You are not authorized for this action!')
-            return func(obj, admin, *args, **kwargs)
+            return func(obj, adminname, *args, **kwargs)
         return decorated
 
     def restrict_to_ultron_admin(self, func):

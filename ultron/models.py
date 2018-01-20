@@ -24,26 +24,26 @@ class BaseModel:
     def __init__(self, collection):
         self.collection = collection
 
-    def get(self, admin, name, attr=None, default=None):
+    def get(self, adminname, name, attr=None, default=None):
         """
         Returns the requested value if found else the specified value
         """
-        found = self.collection.find_one({'name': name, 'admin': admin})
+        found = self.collection.find_one({'name': name, 'adminname': adminname})
         if attr is None and found is not None:
             return found
         return found.get(attr, default) if found else default
 
-    def set(self, admin, name, attr, value):
+    def set(self, adminname, name, attr, value):
         """
         Updates/Inserts key-value pair and returns True
         If no change is made, returns False
         """
-        result = self.collection.update_one({'name': name, 'admin': admin},
+        result = self.collection.update_one({'name': name, 'adminname': adminname},
                                             {'$set': {attr: value}},
                                             upsert=True)
         return False if result.modified_count == 0 else True
 
-    def unset(self, admin, name, attr=None):
+    def unset(self, adminname, name, attr=None):
         """
         Deletes document or key-value pair and returns True
         If no change is made, returns False
@@ -51,20 +51,20 @@ class BaseModel:
         if attr is None:
             result = self.collection.find_one_and_delete({
                 'name': name,
-                'admin': admin
+                'adminname': adminname
             })
             return False if result is None else True
 
-        result = self.collection.update_one({'name': name, 'admin': admin},
+        result = self.collection.update_one({'name': name, 'adminname': adminname},
                                             {'$unset': {attr: 1}})
         return False if result.modified_count == 0 else True
 
-    def list(self, admin, attr=None, unique=False):
+    def list(self, adminname, attr=None, unique=False):
         """
         Returns all values / unique values
         """
         if attr is None: attr = 'name'
-        found = self.collection.find({'admin': admin})
+        found = self.collection.find({'adminname': adminname})
         result = list(map(lambda x: x[attr], found))
         return list(set(result)) if unique else result
 
@@ -109,9 +109,9 @@ class Reports(BaseModel):
         """
         Load client from DB
         """
-        found = self.collection.find_one({'name':client.reportname,
+        found = self.collection.find_one({'name': client.reportname,
                                      'clientname': client.name,
-                                     'admin': client.admin},
+                                     'adminname': client.adminname},
                                     {'_id': 0})
         if found is not None:
             data = dict(found)
@@ -126,7 +126,7 @@ class Reports(BaseModel):
         Removes client from report
         """
         result = self.collection.delete_one({'name': client.reportname,
-            'clientname': client.name, 'admin': client.admin})
+            'clientname': client.name, 'adminname': client.adminname})
         return False if result is None else True
 
 

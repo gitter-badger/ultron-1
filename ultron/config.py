@@ -15,7 +15,7 @@ import socket
 from urllib.parse import quote_plus
 
 
-VERSION = 'v1.1.1'
+VERSION = 'v1.1.2'
 API_VERSION = 'v1.0'
 PORT = int(os.environ.get('ULTRON_PORT', 8080))
 BASE_URL = os.environ.get('ULTRON_BASE_URL',
@@ -32,5 +32,5 @@ if DB_USER is not None and DB_PASS is not None:
 else:
     DB_URL = DB_HOST
 
-CELERY_BACKEND = os.environ.get('ULTRON_CELERY_BACKEND', 'redis://localhost/1')
-CELERY_BROKER = os.environ.get('ULTRON_CELERY_BROKER', 'pyamqp://')
+CELERY_BACKEND = os.environ.get('ULTRON_CELERY_BACKEND', 'rpc://')
+CELERY_BROKER = os.environ.get('ULTRON_CELERY_BROKER', 'redis://localhost:6379/')

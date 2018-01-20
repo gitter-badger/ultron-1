@@ -5,7 +5,6 @@ Author          : Arijit Basu
 Email           : sayanarijit@gmail.com
 """
 
-from __future__ import absolute_import, unicode_literals
 import socket
 import datetime
 from bson.json_util import dumps
@@ -45,9 +44,11 @@ class BaseObject(object):
     """
     Parent class for all objects
     """
-    def __init__(self, modelname):
+    def __init__(self, name, modelname):
+        self.name = name
+        self.props = {}
+        self.state = {}
         self._modelname = modelname
-        self.load()
 
     def __repr__(self):
         return self.json(indent=4, sort_keys=True)
@@ -87,32 +88,11 @@ class BaseObject(object):
         """
         return self.model().cleanup(self)
 
-    def get(self, attr, default=None):
-        """
-        Returns attribute if initialized else returns the passed default value.
-        """
-        if hasattr(self, attr):
-            return getattr(self, attr)
-        else:
-            return default
-
-    def set(self, attr, value):
-        """
-        Used to change attributes of admin. Returns false if no action required
-        and True if state changed successfully.
-        """
-        if hasattr(self, attr):
-            if getattr(self, attr) == value:
-                return False
-        setattr(self, attr, value)
-        self.save()
-        return True
-
     def update(self, data):
         """
+        data: type: dict
         Used to update multiple attributes at once.
-        Returns false if no action required
-        and True if state changed successfully.
+        Returns false if no action required and True if state changed successfully.
         """
         if '_id' in data: del data['_id']
         old = self.__dict__.copy()
@@ -131,35 +111,18 @@ class Client(BaseObject):
     (must be DNS resolvable) or by passing both name and data from
     exported/saved Client object.
     """
-    def __init__(self, name, admin, reportname):
-        self.name = name
-        self.admin = admin.name
+    def __init__(self, name, adminname, reportname):
+        self.adminname = adminname
         self.reportname = reportname
-        self.ref_url = '{}/api/{}/report/{}/{}/{}'.format(BASE_URL, API_VERSION,
-                                                admin.name, reportname, name)
-        BaseObject.__init__(self, 'Reports')
+        self.ref_url = '{}/api/{}/report/{}/{}/{}'.format(
+            BASE_URL, API_VERSION, adminname, reportname, name
+        )
+        BaseObject.__init__(self, name, 'Reports')
 
-    def dns_lookup(self):
-        """
-        Initializes fqdn, ip, hostname etc. for the given client.
-        """
-        self.ip = socket.gethostbyname(self.name)
-        self.fqdn = socket.getfqdn(self.ip)
-        self.dns = socket.gethostbyaddr(self.ip)
-        self.hostname = self.dns[0]
-        self.save()
-        return True
-
-    def load(self):
-        """
-        Import saved state from inventory. If not exists,
-        and dns_lookup is not set to False, performs self.dns_lookup()
-        """
         if not self.model().load(self):
-            self.result = None
-            self.dns_lookup()
-        return True
-
+            self.ip = socket.gethostbyname(self.name)
+            self.fqdn = socket.getfqdn(self.ip)
+            self.save()
 
     def perform(self, taskname, task_pool, force=False, **kwargs):
         """
@@ -173,10 +136,10 @@ class Client(BaseObject):
         method = getattr(tasks, taskname)
 
         # Start the task
-        task = method.delay(self.name, self.admin, self.reportname, **kwargs)
+        task = method.delay(self.name, self.adminname, self.reportname, **kwargs)
         task_pool.submit(self, task)
-        self.result = {'taskname': taskname, 'exception': None, 'finished': False,
-                       'state': task.state, 'result': None}
+        self.task = {'taskname': taskname, 'exception': None, 'finished': False,
+                     'state': task.state, 'result': None}
         self.save()
         return True
 
@@ -186,19 +149,19 @@ class Client(BaseObject):
         If the task is finished, updates the current state.
         """
         task = task_pool.get(self)
-        if task is None or self.result is None:
+        if task is None or self.task is None:
             return True
 
         if not task.ready():
-            self.result['state'] = task.state
+            self.task['state'] = task.state
             return False
 
         try:
-            self.result['result'] = task.get(self)
+            self.task['result'] = task.get(self)
         except Exception as e:
-            self.result['exception'] = str(e)
+            self.task['exception'] = str(e)
         finally:
-            self.result.update({'finished': True, 'state': task.state})
+            self.task.update({'finished': True, 'state': task.state})
             self.save()
         return True
 
@@ -208,55 +171,18 @@ class Admin(BaseObject):
     An admin is someone who is authorized to use this app
     """
     def __init__(self, name):
-        self.name = name
-        self.ref_url = '{}/api/{}/admin/{}'.format(BASE_URL, API_VERSION, name)
-        BaseObject.__init__(self, 'Admins')
+        self.ref_url = '{}/api/{}/admin/{}'.format(
+            BASE_URL, API_VERSION, name
+        )
+        BaseObject.__init__(self, name, 'Admins')
 
-    def load(self):
-        """
-        Loads admin from DB else creates new
-        """
         if not self.model().load(self):
             self.password = generate_password_hash(
-                    'admin', method="pbkdf2:sha256"
+                'admin', method="pbkdf2:sha256"
             )
             self.created = datetime.datetime.utcnow()
-            self.restrict = []
             # self.history = []
             self.save()
             self.model().load(self)
         self.last_login = datetime.datetime.utcnow()
         self.save()
-        return True
-
-    # def log_history(self, request):
-    #     """
-    #     Logs important url requests in history
-    #     """
-    #     data = {'method': request.method,
-    #             'path': request.path,
-    #             'args': request.args.to_dict(),
-    #             'form': request.form.to_dict(),
-    #             'datetime': datetime.datetime.utcnow()}
-    #     self.history.append(data)
-    #     return self.save()
-    #
-    # def clean_history(self, start=None, end=None):
-    #     """
-    #     Cleans history
-    #     """
-    #     if start is not None and end is not None:
-    #         for x in self.history:
-    #             if x['datetime'] >= start and x['datetime'] <= end:
-    #                 self.history.pop(x)
-    #     elif start is not None:
-    #         for x in self.history[::-1]:
-    #             if x['datetime'] >= start:
-    #                 self.history.remove(x)
-    #     elif end is not None:
-    #         for x in self.history:
-    #             if x['datetime'] <= end:
-    #                 self.history.remove(x)
-    #     else:
-    #         self.history = []
-    #     return self.save()

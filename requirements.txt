@@ -41,3 +41,5 @@ traitlets==4.3.2
 vine==1.1.4
 wcwidth==0.1.7
 Werkzeug==0.14.1
+Flask-Cors==3.0.3
+py-gfm==0.1.3
