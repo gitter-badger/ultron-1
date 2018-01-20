@@ -3,8 +3,8 @@
 
 # Configure paths
 
-[ "$DBPATH" ] || DBPATH="$HOME/.ultron_data"
-file $DBPATH || mkdir -v $DBPATH
+[ "$ULTRON_DB_PATH" ] || ULTRON_DB_PATH="$HOME/.ultron_data"
+file $ULTRON_DB_PATH || mkdir -p -v $ULTRON_DB_PATH || exit 1
 
 
 # Check CLI dependencies
@@ -24,5 +24,5 @@ done
 echo "Starting ultron..."
 tmux new -s ultron 'celery -A ultron.tasks worker --loglevel=info' \; \
     split-window 'python -c "from ultron.app import server; server.serve_forever()"' \; \
-    split-window 'mongod --dbpath '$DBPATH \; \
+    split-window 'mongod --dbpath '$ULTRON_DB_PATH \; \
     split-window 'redis-server'

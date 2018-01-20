@@ -26,9 +26,10 @@ Only Linux platform with systemd supports this.
 | Base URL | ULTRON_BASE_URL | Local server's http://FQDN:PORT. e.g. http://localhost.localdomain:8080 |
 | Application secret | ULTRON_SECRET | Random string |
 | Authenntication method | ULTRON_AUTH_METHOD | 'pam_auth' |
+| mongoDB host | ULTRON_DB_HOST | 'localhost:27017' |
 | mongoDB username | ULTRON_DB_USER | None |
 | mongoDB password | ULTRON_DB_PASS | None |
-| mongoDB host | ULTRON_DB_HOST | 'localhost:27017' |
+| mongoDB data path | ULTRON_DB_PATH | '~/.ultron_data' |
 | Celery backend | ULTRON_CELERY_BACKEND | 'rpc://' |
 | Celery broker | ULTRON_CELERY_BROKER | 'redis://localhost:6379/' |
 
