@@ -4,7 +4,7 @@
 # Configure paths
 
 [ "$ULTRON_DB_PATH" ] || ULTRON_DB_PATH="$HOME/.ultron_data"
-file $ULTRON_DB_PATH || mkdir -p -v $ULTRON_DB_PATH || exit 1
+ls -ld $ULTRON_DB_PATH || mkdir -p -v $ULTRON_DB_PATH || exit 1
 
 
 # Check CLI dependencies
