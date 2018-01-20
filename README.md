@@ -66,9 +66,6 @@ pip install ultron
 * Run application
 
 ```bash
-# Start database
-sudo systemctl start mongod
-
 # Run app
 ultron-run
 ```

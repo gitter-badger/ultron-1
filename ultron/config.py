@@ -15,7 +15,7 @@ import socket
 from urllib.parse import quote_plus
 
 
-VERSION = 'v1.1.4'
+VERSION = 'v1.1.5'
 API_VERSION = 'v1.0'
 PORT = int(os.environ.get('ULTRON_PORT', 8080))
 BASE_URL = os.environ.get('ULTRON_BASE_URL',
