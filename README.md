@@ -11,7 +11,7 @@ Not just another infrastructure management tool
 
 Only Linux platform with systemd supports this.
 
-* [Python 3+](https://www.python.org)
+* [Python 3.6+](https://www.python.org)
 * [mongoDB](https://www.mongodb.com)
 * [redis](https://redis.io)
 * [tmux](https://github.com/tmux/tmux)
