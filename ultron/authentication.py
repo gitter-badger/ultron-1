@@ -8,6 +8,7 @@ Email           : sayanarijit@gmail.com
 from __future__ import absolute_import, unicode_literals
 import os
 import pexpect
+from secrets import token_urlsafe
 from flask import request
 from flask_restful import abort
 from werkzeug.security import check_password_hash
@@ -19,7 +20,6 @@ from ultron.config import AUTH_METHOD, SECRET
 
 admins = Admins()
 
-
 class Authentication:
     """
     For authentication
@@ -27,6 +27,13 @@ class Authentication:
     def __init__(self, method=AUTH_METHOD, secret=SECRET):
         self.method = method
         self.secret = secret
+        self.tokens = {}
+
+    def get_token_user(self, token):
+        token = token.split()[-1]
+        for k, v in self.tokens.items():
+            if v == token:
+                return k
 
     def authenticate(self, func):
         """
@@ -34,11 +41,28 @@ class Authentication:
         """
         @wraps(func)
         def decorated(*args, **kwargs):
+            if request.headers.get('Authorization') is not None:
+                token = request.headers.get('Authorization').split()[-1]
+                if token in self.tokens.values():
+                    return func(*args, **kwargs)
             method = getattr(self, self.method)
             if not method():
                 abort(401, message='Authentication failed!')
             return func(*args, **kwargs)
         return decorated
+
+    def logout(self):
+        """
+        Destroys a session for specified username
+        """
+        if request.headers.get('Authorization') is None:
+            return False
+        token = request.headers.get('Authorization').split()[-1]
+        user = self.get_token_user(token)
+        if user is not None:
+            del self.tokens[user]
+            return True
+        return False
 
     def restrict_to_owner(self, func):
         """
@@ -46,6 +70,10 @@ class Authentication:
         """
         @wraps(func)
         def decorated(obj, adminname, *args, **kwargs):
+            if request.headers.get('Authorization') is not None:
+                token = request.headers.get('Authorization').split()[-1]
+                if token == self.tokens.get(adminname):
+                    return func(obj, adminname, *args, **kwargs)
             auth = request.authorization
             if not auth or adminname != auth.username:
                 abort(401, message='You are not authorized for this action!')
@@ -58,13 +86,17 @@ class Authentication:
         """
         @wraps(func)
         def decorated(obj, *args, **kwargs):
+            if request.headers.get('Authorization') is not None:
+                token = request.headers.get('Authorization').split()[-1]
+                if token == self.tokens.get(os.getlogin()):
+                    return func(obj, *args, **kwargs)
             auth = request.authorization
             if not auth or os.getlogin() != auth.username:
                 abort(401, message='You are not authorized for this action!')
             return func(obj, *args, **kwargs)
         return decorated
 
-    def basic_auth(self):
+    def simple_auth(self):
         """
         Local login
         """
@@ -74,7 +106,10 @@ class Authentication:
         if auth.username not in admins.list():
             return False
         admin = Admin(auth.username)
-        return check_password_hash(admin.password, auth.password)
+        if check_password_hash(admin.password, auth.password):
+            self.tokens.update({auth.username: token_urlsafe(100)})
+            return True
+        return False
 
     def pam_auth(self):
         """
@@ -91,7 +126,8 @@ class Authentication:
             p.close()
             if p.exitstatus == 0:
                 Admin(auth.username)
+                self.tokens.update({auth.username: token_urlsafe(100)})
                 return True
         except:
-            pass
+            return False
         return False

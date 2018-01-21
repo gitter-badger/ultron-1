@@ -166,3 +166,23 @@ curl --request DELETE \
   --url $api_url/admin/$user \
   --user $user:$pass
 ```
+
+
+* Example: Token based auth
+```
+# Get auth token
+curl --request POST \
+  --url $api_url/login \
+  --user $user:$pass
+
+# Use access token
+curl --request POST \
+  --url $api_url/admin/$user \
+  --header 'Authorization:<auth_type> <auth_token>'
+
+# Destroy session
+
+curl --request POST \
+  --url $api_url/logout \
+  --header 'Authorization:<auth_type> <auth_token>'
+```
