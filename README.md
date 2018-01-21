@@ -11,7 +11,7 @@ Not just another infrastructure management tool
 
 Only Linux platform with systemd supports this.
 
-* [Python 3+](https://www.python.org)
+* [Python 3.6+](https://www.python.org)
 * [mongoDB](https://www.mongodb.com)
 * [redis](https://redis.io)
 * [tmux](https://github.com/tmux/tmux)
@@ -165,4 +165,24 @@ curl --request POST \
 curl --request DELETE \
   --url $api_url/admin/$user \
   --user $user:$pass
+```
+
+
+* Example: Token based auth
+```
+# Get auth token
+curl --request POST \
+  --url $api_url/login \
+  --user $user:$pass
+
+# Use access token
+curl --request GET \
+  --url $api_url/admin/$user \
+  --header 'Authorization:<auth_type> <auth_token>'
+
+# Destroy session
+
+curl --request POST \
+  --url $api_url/logout \
+  --header 'Authorization:<auth_type> <auth_token>'
 ```
