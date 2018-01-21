@@ -176,7 +176,7 @@ curl --request POST \
   --user $user:$pass
 
 # Use access token
-curl --request POST \
+curl --request GET \
   --url $api_url/admin/$user \
   --header 'Authorization:<auth_type> <auth_token>'
 
