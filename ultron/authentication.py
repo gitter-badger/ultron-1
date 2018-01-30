@@ -27,13 +27,6 @@ class Authentication:
     def __init__(self, method=AUTH_METHOD, secret=SECRET):
         self.method = method
         self.secret = secret
-        self.tokens = {}
-
-    def get_token_user(self, token):
-        token = token.split()[-1]
-        for k, v in self.tokens.items():
-            if v == token:
-                return k
 
     def authenticate(self, func):
         """
@@ -43,6 +36,7 @@ class Authentication:
         def decorated(*args, **kwargs):
             if request.headers.get('Authorization') is not None:
                 token = request.headers.get('Authorization').split()[-1]
+                print('Token:', token)
                 if token in self.tokens.values():
                     return func(*args, **kwargs)
             method = getattr(self, self.method)
@@ -50,19 +44,6 @@ class Authentication:
                 abort(401, message='Authentication failed!')
             return func(*args, **kwargs)
         return decorated
-
-    def logout(self):
-        """
-        Destroys a session for specified username
-        """
-        if request.headers.get('Authorization') is None:
-            return False
-        token = request.headers.get('Authorization').split()[-1]
-        user = self.get_token_user(token)
-        if user is not None:
-            del self.tokens[user]
-            return True
-        return False
 
     def restrict_to_owner(self, func):
         """
@@ -72,7 +53,9 @@ class Authentication:
         def decorated(obj, adminname, *args, **kwargs):
             if request.headers.get('Authorization') is not None:
                 token = request.headers.get('Authorization').split()[-1]
-                if token == self.tokens.get(adminname):
+                admt = Admin(adminname).token
+
+                if token == :
                     return func(obj, adminname, *args, **kwargs)
             auth = request.authorization
             if not auth or adminname != auth.username:
@@ -106,8 +89,7 @@ class Authentication:
         if auth.username not in admins.list():
             return False
         admin = Admin(auth.username)
-        if check_password_hash(admin.password, auth.password):
-            self.tokens.update({auth.username: token_urlsafe(100)})
+        if admin.validate_password(auth.password):
             return True
         return False
 
@@ -127,6 +109,7 @@ class Authentication:
             if p.exitstatus == 0:
                 Admin(auth.username)
                 self.tokens.update({auth.username: token_urlsafe(100)})
+                print('Token created:', self.tokens[auth.username])
                 return True
         except:
             return False

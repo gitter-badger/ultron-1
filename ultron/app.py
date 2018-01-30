@@ -30,8 +30,6 @@ api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
 server = WSGIServer(('', PORT), app)
 auth = Authentication()
 
-task_pool = TaskPool()
-
 
 # APP overwrites ---------------------------------------------------------------
 
@@ -84,11 +82,13 @@ def indexPage():
 
 # API --------------------------------------------------------------------------
 
-class LoginApi(Resource):
+class TokenApi(Resource):
     """
-    Methods: POST
+    Methods: GET, DELETE
+        GET: Generate new token / renew current token
+        DELETE: Revoke current token
     """
-    def post(self):
+    def get(self, adminname):
         """
         Returns access token if login success
         """
@@ -99,16 +99,11 @@ class LoginApi(Resource):
             auth_token=auth.tokens.get(request.authorization.get('username'))
         )
 
-
-class LogoutApi(Resource):
-    """
-    Methods: GET, POST
-    """
-    def get(self):
-        return dict(result=auth.logout())
-
-    def post(self):
-        return dict(result=auth.logout())
+    @auth.authenticate
+    def delete(self, adminname):
+        """
+        Revokes current token
+        """
 
 
 class ReportApi(Resource):
@@ -431,8 +426,7 @@ def handle_invalid_usage(error):
 
 # API routes -------------------------------------------------------------------
 
-api.add_resource(LoginApi, '/login')
-api.add_resource(LogoutApi, '/logout')
+api.add_resource(TokenApi, '/token/<adminname>')
 api.add_resource(ReportApi, '/report/<adminname>/<reportname>/<clientname>')
 api.add_resource(ReportsApi, '/reports/<adminname>/<reportname>')
 api.add_resource(TaskApi, '/task/<adminname>/<reportname>')
