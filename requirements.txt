@@ -43,3 +43,4 @@ wcwidth==0.1.7
 Werkzeug==0.14.1
 Flask-Cors==3.0.3
 py-gfm==0.1.3
+pyOpenSSL==17.5.0

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from random import choice
 from bson.json_util import dumps
 from ultron import tasks, models
-from ultron.config import BASE_URL, API_VERSION
+from ultron.config import BASE_URL, API_VERSION, TOKEN_TIMEOUT
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -179,11 +179,10 @@ class Admin(BaseObject):
         BaseObject.__init__(self, name, 'Admins')
 
         if not self.model().load(self):
-            self._password = generate_password_hash(
-                'admin', method="pbkdf2:sha256"
+            self.password = generate_password_hash(
+                'admin', method='pbkdf2:sha256'
             )
             self.created = datetime.utcnow()
-            # self.history = []
             self.generate_token()
             self.model().load(self)
         self.last_login = datetime.utcnow()
@@ -193,32 +192,33 @@ class Admin(BaseObject):
         """
         Generates new auth token
         """
-        token = "".join(map(lambda: choice(string.ascii_letters + string.digits), range(64)))
-        self._token = {
-            'hash': generate_password_hash(token),
-            'expires': datetime.utcnow() + timedelta(seconds=3600)
+        token = "".join(map(lambda x: choice(string.ascii_letters + string.digits), range(64)))
+        self.token = {
+            'hash': generate_password_hash(token, method='pbkdf2:sha256'),
+            'expires': datetime.utcnow() + timedelta(seconds=TOKEN_TIMEOUT)
         }
         self.save()
-        return dict(token=token, expires=self._token.get('expires'))
+        return dict(token=self.name+":"+token, validity=TOKEN_TIMEOUT, metric='seconds')
 
     def renew_token(self):
         """
         Renew current token if not already expired, returns boolean
         """
-        if self._token.get('expires') < datetime.utcnow():
-            return False
-        self._token.update({
-            'expires': datetime.utcnow() + timedelta(seconds=3600)
+        if self.token.get('expires') < datetime.utcnow():
+            result = False
+        self.token.update({
+            'expires': datetime.utcnow() + timedelta(seconds=TOKEN_TIMEOUT)
         })
-        return self.save()
+        result = self.save()
+        return dict(result=result, validity=TOKEN_TIMEOUT, metric='seconds')
 
     def validate_token(self, token):
         """
         Compares hashed tokens
         """
-        if self._token.get('expires') < datetime.utcnow():
+        if self.token.get('expires') < datetime.utcnow():
             return False
-        return check_password_hash(self._token.get('hash'), token)
+        return check_password_hash(self.token.get('hash'), token)
 
     def validate_password(self, password):
         """
@@ -230,7 +230,7 @@ class Admin(BaseObject):
         """
         Revokes current auth token
         """
-        self._token.update({
+        self.token.update({
             'expires': datetime.utcnow()
         })
         return self.save()

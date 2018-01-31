@@ -22,6 +22,7 @@ BASE_URL = os.environ.get('ULTRON_BASE_URL',
                           'http://{}:{}'.format(socket.getfqdn(), PORT))
 SECRET = os.environ.get('ULTRON_SECRET', '%$%^#^*!hgs(()adsdas&^)&%$^sftegbtr$%')
 AUTH_METHOD = os.environ.get('ULTRON_AUTH_METHOD', 'pam_auth')
+TOKEN_TIMEOUT = int(os.environ.get('ULTRON_TOKEN_TIMEOUT', 3600))
 
 DB_USER = os.environ.get('ULTRON_DB_USER', None)
 DB_PASS = os.environ.get('ULTRON_DB_PASS', None)
