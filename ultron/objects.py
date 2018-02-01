@@ -210,7 +210,8 @@ class Admin(BaseObject):
             'expires': datetime.utcnow() + timedelta(seconds=TOKEN_TIMEOUT)
         })
         result = self.save()
-        return dict(result=result, validity=TOKEN_TIMEOUT, metric='seconds')
+        validity = (self.token.get('expires') - datetime.utcnow()).seconds
+        return dict(renewed=result, validity=validity, metric='seconds')
 
     def validate_token(self, token):
         """

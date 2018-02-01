@@ -69,7 +69,7 @@ class Authentication:
             authadmin = None
             auth_header = request.headers.get('Authorization')
             if auth_header is not None and 'Basic' not in auth_header:
-                authadmin == self.parse_header()[0]
+                authadmin = self.parse_header()[0]
             auth = request.authorization
             if auth is not None:
                 authadmin = auth.get('username')

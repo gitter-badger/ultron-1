@@ -85,7 +85,7 @@ def indexPage():
 
 class TokenApi(Resource):
     """
-    Methods: GET, DELETE
+    Methods: GET, POST, DELETE
     """
     @auth.authenticate
     @auth.restrict_to_owner
@@ -109,6 +109,7 @@ class TokenApi(Resource):
         """
         Revokes current token
         """
+        return Admin(adminname).revoke_token()
 
 
 class ReportApi(Resource):
