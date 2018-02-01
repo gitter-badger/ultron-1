@@ -193,15 +193,15 @@ read -p 'Enter received token: ' token
 # Use access token
 curl --request GET \
   --url $api_url/admin/$user \
-  --header "Authorization:$token"
+  --header Authorization:$token
 
 # Renew token
 curl --request POST \
   --url $api_url/token/$user \
-  --header "Authorization:$token"
+  --header Authorization:$token
 
 # Revoke token
 curl --request DELETE \
   --url $api_url/token/$user \
-  --header "Authorization:$token"
+  --header Authorization:$token
 ```
