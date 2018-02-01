@@ -71,7 +71,7 @@ def init_clients(clientnames, adminname, reportname):
 def indexPage():
     here = path.dirname(path.realpath(__file__))
     md = markdown.Markdown(extensions=[GithubFlavoredMarkdownExtension()])
-    with open(path.join(path.dirname(here), 'README.md')) as f:
+    with open(path.join(path.dirname(here), 'ultron', 'README.md')) as f:
         content = f.read()
     return Markup(md.convert(content))
 

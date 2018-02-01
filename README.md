@@ -107,45 +107,45 @@ echo -en 'Enter login password for '$user': ' && read -s pass
 reportname='ping_check'
 
 # Create report
-curl --request POST \
+curl -k --request POST \
   --url $api_url/reports/$user/$reportname \
   --form 'clientnames=localhost,127.0.0.1' \
   --user $user:$pass
 
 # Get report
-curl --request GET \
+curl -k --request GET \
   --url $api_url/reports/$user/$reportname \
   --user $user:$pass
 
 # Get client
-curl --request GET \
+curl -k --request GET \
   --url $api_url/report/$user/$reportname/localhost \
   --user $user:$pass
 
 # Modify client state
-curl --request POST \
+curl -k --request POST \
   --url $api_url/report/$user/$reportname/localhost \
   --form 'data={"newattr": "test"}' \
   --user $user:$pass
 
 # Start task (ping)
-curl --request POST \
+curl -k --request POST \
   --url $api_url/task/$user/$reportname \
   --form task=ping \
   --user $user:$pass
 
 # Finish current task
-curl --request GET \
+curl -k --request GET \
   --url $api_url/task/$user/$reportname \
   --user $user:$pass
 
 # Delete client
-curl --request DELETE \
+curl -k --request DELETE \
   --url $api_url/report/$user/$reportname/localhost \
   --user $user:$pass
 
 # Delete report
-curl --request DELETE \
+curl -k --request DELETE \
   --url $api_url/reports/$user/$reportname \
   --user $user:$pass
 ```
@@ -158,23 +158,23 @@ curl --request DELETE \
 
 ```bash
 # Get all admins
-curl --request GET \
+curl -k --request GET \
   --url $api_url/admins \
   --user $user:$pass
 
 # Get one admin info and all his created report names
-curl --request GET \
+curl -k --request GET \
   --url $api_url/admin/$user \
   --user $user:$pass
 
 # Modify admin parameters
-curl --request POST \
+curl -k --request POST \
   --url $api_url/admin/$user \
   --form 'data={"newattr": "test"}' \
   --user $user:$pass
 
 # Delete admin
-curl --request DELETE \
+curl -k --request DELETE \
   --url $api_url/admin/$user \
   --user $user:$pass
 ```
@@ -183,25 +183,25 @@ curl --request DELETE \
 * Example: Token based auth
 ```
 # Get auth token
-curl --request GET \
+curl -k --request GET \
   --url $api_url/token/$user \
   --user $user:$pass
 
 # Save token
-read -p 'Enter received token: ' token
+echo -en 'Enter received token: ' && read token
 
 # Use access token
-curl --request GET \
+curl -k --request GET \
   --url $api_url/admin/$user \
   --header Authorization:$token
 
 # Renew token
-curl --request POST \
+curl -k --request POST \
   --url $api_url/token/$user \
   --header Authorization:$token
 
 # Revoke token
-curl --request DELETE \
+curl -k --request DELETE \
   --url $api_url/token/$user \
   --header Authorization:$token
 ```
