@@ -26,6 +26,7 @@ Only Linux platform with systemd supports this.
 | Base URL | ULTRON_BASE_URL | Local server's http://FQDN:PORT. e.g. http://localhost.localdomain:8080 |
 | Application secret | ULTRON_SECRET | Random string |
 | Authenntication method | ULTRON_AUTH_METHOD | 'pam_auth' |
+| Auth token validity | ULTRON_TOKEN_TIMEOUT | 3600 |
 | mongoDB host | ULTRON_DB_HOST | 'localhost:27017' |
 | mongoDB username | ULTRON_DB_USER | None |
 | mongoDB password | ULTRON_DB_PASS | None |
@@ -77,7 +78,7 @@ ultron-run
 * URL format for v1.0
 
 ```bash
-base_url='http://localhost:8080'
+base_url='https://localhost:8080'
 api_url=$base_url/api/v1.0
 ```
 
@@ -171,18 +172,26 @@ curl --request DELETE \
 * Example: Token based auth
 ```
 # Get auth token
-curl --request POST \
-  --url $api_url/login \
+curl --request GET \
+  --url $api_url/token/$user \
   --user $user:$pass
+
+# Save token
+read -p 'Enter received token: ' token
 
 # Use access token
 curl --request GET \
   --url $api_url/admin/$user \
-  --header 'Authorization:<auth_type> <auth_token>'
+  --header "Authorization:$token"
 
-# Destroy session
-
+# Renew token
 curl --request POST \
-  --url $api_url/logout \
-  --header 'Authorization:<auth_type> <auth_token>'
+  --url $api_url/token/$user \
+  --header 'Authorization:$token'
+
+# Revoke token
+
+curl --request DELETE \
+  --url $api_url/token/$user \
+  --header 'Authorization:$token'
 ```

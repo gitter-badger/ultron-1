@@ -234,5 +234,5 @@ class Admin(BaseObject):
         self.token.update({
             'expires': datetime.utcnow()
         })
-        return self.save()
+        return dict(revoked=self.save())
 
