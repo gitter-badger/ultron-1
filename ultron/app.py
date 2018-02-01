@@ -10,8 +10,7 @@ import markdown
 from mdx_gfm import GithubFlavoredMarkdownExtension
 from bson.json_util import loads, dumps
 from os import path
-# from flask import Flask, jsonify, make_response, render_template, send_from_directory
-from flask import Flask, jsonify, make_response, Markup, request
+from flask import Flask, jsonify, make_response, Markup
 from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
 from flask_cors import CORS
@@ -19,7 +18,7 @@ from gevent.wsgi import WSGIServer
 from ultron.objects import Client, Admin, TaskPool
 from ultron.models import Reports, Admins
 from ultron.authentication import Authentication
-from ultron.config import API_VERSION, PORT, AUTH_METHOD, SECRET
+from ultron.config import API_VERSION, PORT, SECRET, SSL_KEY_FILE, SSL_CERT_FILE
 
 
 app = Flask(__name__)
@@ -27,9 +26,8 @@ app.config['BUNDLE_ERRORS'] = True
 app.config['SECRET_KEY'] = SECRET
 CORS(app)
 api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
-server = WSGIServer(('', PORT), app)
+server = WSGIServer(('', PORT), app, keyfile=SSL_KEY_FILE, certfile=SSL_CERT_FILE)
 auth = Authentication()
-
 task_pool = TaskPool()
 
 
@@ -84,31 +82,33 @@ def indexPage():
 
 # API --------------------------------------------------------------------------
 
-class LoginApi(Resource):
+class TokenApi(Resource):
     """
-    Methods: POST
+    Methods: GET, POST, DELETE
     """
-    def post(self):
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def get(self, adminname):
         """
-        Returns access token if login success
+        Generates access token
         """
-        if not getattr(auth, AUTH_METHOD)():
-            abort(401, message='Authentication failed!')
-        return dict(
-            auth_type='Bearer',
-            auth_token=auth.tokens.get(request.authorization.get('username'))
-        )
+        return Admin(adminname).generate_token()
 
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def post(self, adminname):
+        """
+        Renew token if not already expired
+        """
+        return Admin(adminname).renew_token()
 
-class LogoutApi(Resource):
-    """
-    Methods: GET, POST
-    """
-    def get(self):
-        return dict(result=auth.logout())
-
-    def post(self):
-        return dict(result=auth.logout())
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def delete(self, adminname):
+        """
+        Revokes current token
+        """
+        return Admin(adminname).revoke_token()
 
 
 class ReportApi(Resource):
@@ -362,7 +362,7 @@ class AdminApi(Resource):
         """
         admins = Admins()
         result = dict(result=admins.collection.find_one(
-            {'name': adminname}, {'_id': 0, 'password': 0})
+            {'name': adminname}, {'_id': 0, 'password': 0, 'token': 0})
         )
         reports = Reports()
         if result['result'] is not None:
@@ -431,8 +431,7 @@ def handle_invalid_usage(error):
 
 # API routes -------------------------------------------------------------------
 
-api.add_resource(LoginApi, '/login')
-api.add_resource(LogoutApi, '/logout')
+api.add_resource(TokenApi, '/token/<adminname>')
 api.add_resource(ReportApi, '/report/<adminname>/<reportname>/<clientname>')
 api.add_resource(ReportsApi, '/reports/<adminname>/<reportname>')
 api.add_resource(TaskApi, '/task/<adminname>/<reportname>')
@@ -442,4 +441,4 @@ api.add_resource(AdminApi, '/admin/<adminname>')
 
 # Run app ----------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run('0.0.0.0', port=PORT, debug=True)
+    app.run('0.0.0.0', port=PORT, debug=True, ssl_context='adhoc')

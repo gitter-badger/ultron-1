@@ -8,10 +8,8 @@ Email           : sayanarijit@gmail.com
 from __future__ import absolute_import, unicode_literals
 import os
 import pexpect
-from secrets import token_urlsafe
 from flask import request
 from flask_restful import abort
-from werkzeug.security import check_password_hash
 from functools import wraps
 from ultron.models import Admins
 from ultron.objects import Admin
@@ -27,13 +25,16 @@ class Authentication:
     def __init__(self, method=AUTH_METHOD, secret=SECRET):
         self.method = method
         self.secret = secret
-        self.tokens = {}
 
-    def get_token_user(self, token):
-        token = token.split()[-1]
-        for k, v in self.tokens.items():
-            if v == token:
-                return k
+    def parse_header(self):
+        """
+        Returns adminname and token parsed from request header
+        """
+        try:
+            adminname, token = request.headers.get('Authorization').split()[-1].split(':')
+        except:
+            abort(401, message='Authentication Failed: Invalid token format. Try username:token')
+        return (adminname, token)
 
     def authenticate(self, func):
         """
@@ -41,79 +42,79 @@ class Authentication:
         """
         @wraps(func)
         def decorated(*args, **kwargs):
-            if request.headers.get('Authorization') is not None:
-                token = request.headers.get('Authorization').split()[-1]
-                if token in self.tokens.values():
+            # Try token auth first
+            auth_header = request.headers.get('Authorization')
+            if auth_header is not None and 'Basic' not in auth_header:
+                adminname, token = self.parse_header()
+                if Admin(adminname).validate_token(token):
                     return func(*args, **kwargs)
+
+            # Else default auth method
             method = getattr(self, self.method)
             if not method():
-                abort(401, message='Authentication failed!')
+                abort(401, message='Authentication failed: Invalid credentials')
             return func(*args, **kwargs)
         return decorated
 
-    def logout(self):
-        """
-        Destroys a session for specified username
-        """
-        if request.headers.get('Authorization') is None:
-            return False
-        token = request.headers.get('Authorization').split()[-1]
-        user = self.get_token_user(token)
-        if user is not None:
-            del self.tokens[user]
-            return True
-        return False
-
     def restrict_to_owner(self, func):
         """
-        Decorator to restrict URL only to owner only
+        Decorator that restricts URL only to it's owner.
+        It doesn't perform any authentication. So authenticate
+        decorator must be used before using this. It only matches adminname
+        from URL with adminname in auth/token header. So it will work on
+        URL that gets adminname as it's first parameter.
         """
         @wraps(func)
         def decorated(obj, adminname, *args, **kwargs):
-            if request.headers.get('Authorization') is not None:
-                token = request.headers.get('Authorization').split()[-1]
-                if token == self.tokens.get(adminname):
-                    return func(obj, adminname, *args, **kwargs)
+            authadmin = None
+            auth_header = request.headers.get('Authorization')
+            if auth_header is not None and 'Basic' not in auth_header:
+                authadmin = self.parse_header()[0]
             auth = request.authorization
-            if not auth or adminname != auth.username:
+            if auth is not None:
+                authadmin = auth.get('username')
+            if authadmin != adminname:
                 abort(401, message='You are not authorized for this action!')
             return func(obj, adminname, *args, **kwargs)
         return decorated
 
     def restrict_to_ultron_admin(self, func):
         """
-        Decorator to restrict URL only to ultron admin only
+        Decorator to restrict URL only to ultron admin only.
+        Again it doesn't perform any authentication. It works same
+        as restrict_to_owner except that the admin must be the user
+        under who's id the server is running.
         """
         @wraps(func)
         def decorated(obj, *args, **kwargs):
-            if request.headers.get('Authorization') is not None:
-                token = request.headers.get('Authorization').split()[-1]
-                if token == self.tokens.get(os.getlogin()):
-                    return func(obj, *args, **kwargs)
+            authadmin = None
+            auth_header = request.headers.get('Authorization')
+            if auth_header is not None and 'Basic' not in auth_header:
+                authadmin == self.parse_header()[0]
             auth = request.authorization
-            if not auth or os.getlogin() != auth.username:
+            if auth is not None:
+                authadmin = auth.get('username')
+            if authadmin != os.getlogin():
                 abort(401, message='You are not authorized for this action!')
             return func(obj, *args, **kwargs)
         return decorated
 
-    def simple_auth(self):
+    def db_auth(self):
         """
-        Local login
+        Validates password with password stored in DB
         """
         auth = request.authorization
         if not auth or not auth.username or not auth.password:
             return False
         if auth.username not in admins.list():
             return False
-        admin = Admin(auth.username)
-        if check_password_hash(admin.password, auth.password):
-            self.tokens.update({auth.username: token_urlsafe(100)})
+        if Admin(auth.username).validate_password(auth.password):
             return True
         return False
 
     def pam_auth(self):
         """
-        Unix PAM authentication
+        Validates password with local unix password
         """
         auth = request.authorization
         if not auth or not auth.username or not auth.password:
@@ -126,8 +127,8 @@ class Authentication:
             p.close()
             if p.exitstatus == 0:
                 Admin(auth.username)
-                self.tokens.update({auth.username: token_urlsafe(100)})
                 return True
         except:
             return False
         return False
+

@@ -6,11 +6,13 @@ Email           : sayanarijit@gmail.com
 """
 
 import socket
-import datetime
+import string
+from datetime import datetime, timedelta
+from random import choice
 from bson.json_util import dumps
 from ultron import tasks, models
-from ultron.config import BASE_URL, API_VERSION
-from werkzeug.security import generate_password_hash
+from ultron.config import BASE_URL, API_VERSION, TOKEN_TIMEOUT
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class TaskPool(object):
@@ -178,11 +180,59 @@ class Admin(BaseObject):
 
         if not self.model().load(self):
             self.password = generate_password_hash(
-                'admin', method="pbkdf2:sha256"
+                'admin', method='pbkdf2:sha256'
             )
-            self.created = datetime.datetime.utcnow()
-            # self.history = []
-            self.save()
+            self.created = datetime.utcnow()
+            self.generate_token()
             self.model().load(self)
-        self.last_login = datetime.datetime.utcnow()
+        self.last_login = datetime.utcnow()
         self.save()
+
+    def generate_token(self):
+        """
+        Generates new auth token
+        """
+        token = "".join(map(lambda x: choice(string.ascii_letters + string.digits), range(64)))
+        self.token = {
+            'hash': generate_password_hash(token, method='pbkdf2:sha256'),
+            'expires': datetime.utcnow() + timedelta(seconds=TOKEN_TIMEOUT)
+        }
+        self.save()
+        return dict(token=self.name+":"+token, validity=TOKEN_TIMEOUT, metric='seconds')
+
+    def renew_token(self):
+        """
+        Renew current token if not already expired, returns boolean
+        """
+        if self.token.get('expires') < datetime.utcnow():
+            result = False
+        self.token.update({
+            'expires': datetime.utcnow() + timedelta(seconds=TOKEN_TIMEOUT)
+        })
+        result = self.save()
+        validity = (self.token.get('expires') - datetime.utcnow()).seconds
+        return dict(renewed=result, validity=validity, metric='seconds')
+
+    def validate_token(self, token):
+        """
+        Compares hashed tokens
+        """
+        if self.token.get('expires') < datetime.utcnow():
+            return False
+        return check_password_hash(self.token.get('hash'), token)
+
+    def validate_password(self, password):
+        """
+        Compares hashed password
+        """
+        return check_password_hash(self.password, password)
+
+    def revoke_token(self):
+        """
+        Revokes current auth token
+        """
+        self.token.update({
+            'expires': datetime.utcnow()
+        })
+        return dict(revoked=self.save())
+
