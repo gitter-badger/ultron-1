@@ -16,14 +16,17 @@ Only Linux platform with systemd supports this.
 * [redis](https://redis.io)
 * [tmux](https://github.com/tmux/tmux)
 * [sshpass](https://linux.die.net/man/1/sshpass)
+* [openssl](https://linux.die.net/man/1/openssl)
 
 
 ### Configuration
 
 | Parameter | Environment variable | Default (if not set) |
 | --------- | -------------------- | -------------------- |
-| Default port | ULTRON_PORT | '8080' |
-| Base URL | ULTRON_BASE_URL | Local server's http://FQDN:PORT. e.g. http://localhost.localdomain:8080 |
+| Default port | ULTRON_PORT | 5050 |
+| Base URL | ULTRON_BASE_URL | Local server's https://FQDN:PORT. e.g. https://localhost:5050 |
+| SSL key file | ULTRON_SSL_KEY_FILE | '~/.ultron_key.pem' |
+| SSL certification file | ULTRON_SSL_CERT_FILE | '~/.ultron_cert.pem' |
 | Application secret | ULTRON_SECRET | Random string |
 | Authenntication method | ULTRON_AUTH_METHOD | 'pam_auth' |
 | Auth token validity | ULTRON_TOKEN_TIMEOUT | 3600 |
@@ -43,10 +46,10 @@ First make sure your default python interpreter is python 3+
 
 ```bash
 # Ubuntu / Debian
-sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev sshpass virtualenv
+sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev sshpass virtualenv openssl
 
 # RHEL / CentOS / Fedora
-sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass virtualenv
+sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass virtualenv openssl
 ```
 
 ***Also install [MongoDB](https://www.mongodb.com) and [redis](https://redis.io) from their official site***
@@ -65,6 +68,11 @@ source ~/.venv/bin/activate
 pip install ultron
 ```
 
+* Generate SSL certificate and key file
+
+```bash
+openssl req -x509 -newkey rsa:4096 -nodes -out ~/.ultron_cert.pem -keyout ~/.ultron_key.pem -days 36
+
 * Run application
 
 ```bash
@@ -78,7 +86,7 @@ ultron-run
 * URL format for v1.0
 
 ```bash
-base_url='https://localhost:8080'
+base_url='https://localhost:5050'
 api_url=$base_url/api/v1.0
 ```
 
@@ -190,7 +198,6 @@ curl --request POST \
   --header 'Authorization:$token'
 
 # Revoke token
-
 curl --request DELETE \
   --url $api_url/token/$user \
   --header 'Authorization:$token'

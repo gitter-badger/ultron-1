@@ -10,7 +10,6 @@ import markdown
 from mdx_gfm import GithubFlavoredMarkdownExtension
 from bson.json_util import loads, dumps
 from os import path
-# from flask import Flask, jsonify, make_response, render_template, send_from_directory
 from flask import Flask, jsonify, make_response, Markup
 from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
@@ -19,7 +18,7 @@ from gevent.wsgi import WSGIServer
 from ultron.objects import Client, Admin, TaskPool
 from ultron.models import Reports, Admins
 from ultron.authentication import Authentication
-from ultron.config import API_VERSION, PORT, SECRET
+from ultron.config import API_VERSION, PORT, SECRET, SSL_KEY_FILE, SSL_CERT_FILE
 
 
 app = Flask(__name__)
@@ -27,7 +26,7 @@ app.config['BUNDLE_ERRORS'] = True
 app.config['SECRET_KEY'] = SECRET
 CORS(app)
 api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
-server = WSGIServer(('', PORT), app)
+server = WSGIServer(('', PORT), app, keyfile=SSL_KEY_FILE, certfile=SSL_CERT_FILE)
 auth = Authentication()
 task_pool = TaskPool()
 

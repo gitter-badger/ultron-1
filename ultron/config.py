@@ -17,9 +17,11 @@ from urllib.parse import quote_plus
 
 VERSION = 'v1.1.8'
 API_VERSION = 'v1.0'
-PORT = int(os.environ.get('ULTRON_PORT', 8080))
+PORT = int(os.environ.get('ULTRON_PORT', 5050))
 BASE_URL = os.environ.get('ULTRON_BASE_URL',
-                          'http://{}:{}'.format(socket.getfqdn(), PORT))
+                          'https://{}:{}'.format(socket.getfqdn(), PORT))
+SSL_KEY_FILE = os.path.expanduser(os.environ.get('ULTRON_SSL_KEY_FILE', '~/.ultron_key.pem'))
+SSL_CERT_FILE = os.path.expanduser(os.environ.get('ULTRON_SSL_CERT_FILE', '~/.ultron_cert.pem'))
 SECRET = os.environ.get('ULTRON_SECRET', '%$%^#^*!hgs(()adsdas&^)&%$^sftegbtr$%')
 AUTH_METHOD = os.environ.get('ULTRON_AUTH_METHOD', 'pam_auth')
 TOKEN_TIMEOUT = int(os.environ.get('ULTRON_TOKEN_TIMEOUT', 3600))
