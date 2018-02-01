@@ -46,10 +46,12 @@ First make sure your default python interpreter is python 3+
 
 ```bash
 # Ubuntu / Debian
-sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev sshpass virtualenv openssl
+sudo apt-get install -y tmux build-essential libssl-dev libffi-dev python3-dev sshpass openssl
+sudo pip install virtualenv
 
 # RHEL / CentOS / Fedora
-sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass virtualenv openssl
+sudo yum install -y tmux gcc libffi-devel python3-devel openssl-devel sshpass openssl
+sudo pip install virtualenv
 ```
 
 ***Also install [MongoDB](https://www.mongodb.com) and [redis](https://redis.io) from their official site***
