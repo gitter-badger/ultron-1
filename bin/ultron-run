@@ -19,10 +19,14 @@ for dep in ${deps[*]}; do
 done
 
 
+# Autoscale
+[ "$ULTRON_AUTOSCALE" ] || ULTRON_AUTOSCALE="100,3"
+
+
 # Start app
 
 echo "Starting ultron..."
-tmux new -s ultron 'celery -A ultron.tasks worker --loglevel=info --autoscale=1000,5' \; \
+tmux new -s ultron 'celery -A ultron.tasks worker --loglevel=info --autoscale='$ULTRON_AUTOSCALE \; \
     split-window 'python -c "from ultron.app import server; server.serve_forever()"' \; \
     split-window 'mongod --dbpath '$ULTRON_DB_PATH \; \
     split-window 'redis-server'
