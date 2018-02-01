@@ -6,6 +6,7 @@ Email           : sayanarijit@gmail.com
 """
 
 import os
+import socket
 from subprocess import Popen, PIPE
 from shlex import quote
 from celery import Celery
@@ -15,6 +16,16 @@ from ultron import objects
 
 celery_app = Celery('tasks', backend=CELERY_BACKEND, broker=CELERY_BROKER)
 
+
+@celery_app.task
+def dns_lookup(clientname, adminname, reportname):
+    """
+    Function to perform DNS lookup
+    """
+    client = objects.Client(clientname, adminname, reportname)
+    client.ip = socket.gethostbyname(client.name)
+    client.fqdn = socket.getfqdn(client.ip)
+    return client.save()
 
 @celery_app.task
 def ping(clientname, adminname, reportname):

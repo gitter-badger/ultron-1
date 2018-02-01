@@ -63,7 +63,7 @@ def init_clients(clientnames, adminname, reportname):
     valid, invalid = [], []
     for x in tqdm(clientnames):
         try:
-            valid.append(Client(x, adminname, reportname))
+            valid.append(Client(x, adminname, reportname, task_pool))
         except Exception as e:
             invalid.append([x, str(e)])
     return valid, invalid
