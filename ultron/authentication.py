@@ -94,7 +94,7 @@ class Authentication:
             auth = request.authorization
             if auth is not None:
                 authadmin = auth.get('username')
-            if authadmin != os.getlogin():
+            if authadmin != os.environ.get('USER'):
                 abort(401, message='You are not authorized for this action!')
             return func(obj, *args, **kwargs)
         return decorated
