@@ -18,6 +18,15 @@ celery_app = Celery('tasks', backend=CELERY_BACKEND, broker=CELERY_BROKER)
 
 
 @celery_app.task
+def set_props(clientname, adminname, reportname, props={}):
+    """
+    Function to set client properties
+    """
+    client = objects.Client(clientname, adminname, reportname)
+    client.props.update(props)
+    return client.save()
+
+@celery_app.task
 def dns_lookup(clientname, adminname, reportname):
     """
     Function to perform DNS lookup
