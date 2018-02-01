@@ -155,7 +155,7 @@ class Client(BaseObject):
         Returns the status of last performed task.
         If the task is finished, updates the current state.
         """
-        if not self.has_dns:
+        if not self.has_dns and self.task is None:
             return False
         task = task_pool.get(self)
         if task is None or self.task is None:
