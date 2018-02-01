@@ -124,19 +124,14 @@ class Client(BaseObject):
     Client can be initialized by passing a single string as name
     (must be DNS resolvable) or by passing both name and data from
     exported/saved Client object.
-    If it is being initialized for the first time, it will
-    perform DNS lookup. so task_pool must be given.
     """
-    def __init__(self, name, adminname, reportname, task_pool):
+    def __init__(self, name, adminname, reportname):
         self.adminname = adminname
         self.reportname = reportname
         self.ref_url = '{}/api/{}/report/{}/{}/{}'.format(
             BASE_URL, API_VERSION, adminname, reportname, name
         )
         BaseObject.__init__(self, name, 'Reports')
-
-        if not self.model().load(self) and task_pool:
-            self.perform('dns_lookup', task_pool)
 
     def perform(self, taskname, task_pool, **kwargs):
         """
