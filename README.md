@@ -74,6 +74,7 @@ pip install ultron
 
 ```bash
 openssl req -x509 -newkey rsa:4096 -nodes -out ~/.ultron_cert.pem -keyout ~/.ultron_key.pem -days 36
+```
 
 * Run application
 
