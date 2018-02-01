@@ -198,10 +198,10 @@ curl --request GET \
 # Renew token
 curl --request POST \
   --url $api_url/token/$user \
-  --header 'Authorization:$token'
+  --header "Authorization:$token"
 
 # Revoke token
 curl --request DELETE \
   --url $api_url/token/$user \
-  --header 'Authorization:$token'
+  --header "Authorization:$token"
 ```
