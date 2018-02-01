@@ -337,7 +337,7 @@ class TaskApi(Resource):
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable")
-        task_pool.purge_all()
+        task_pool.purge_all(reportname)
         return dict(result={x.name: x.perform(task, task_pool, **kwargs) for x in tqdm(clients)})
 
 

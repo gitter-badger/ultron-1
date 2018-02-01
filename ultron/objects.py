@@ -41,10 +41,17 @@ class TaskPool(object):
         except:
             return None
 
-    def purge_all(self):
+    def purge_all(self, reportname=None):
         """
         Purge all submitted tasks
         """
+        if reportname is not None:
+            result = list(map(
+                lambda x: tasks.celery_app.control.revoke(x.id),
+                self.pool[reportname].values()
+            ))
+            self.pool[reportname] = {}
+            return result
         return tasks.celery_app.control.purge()
 
 
