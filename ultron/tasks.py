@@ -40,7 +40,9 @@ def ping(clientname, adminname, reportname):
 
     # DNS lookup
     if client.dns is None and not dns_lookup(clientname, adminname, reportname):
-        return None
+        return
+    elif client.dns is None:
+        client = objects.Client(clientname, adminname, reportname)
 
     # Prepare shell command
     options = client.props.get('ping_options', ['-c1', '-w5'])
@@ -107,7 +109,9 @@ def ssh(clientname, adminname, reportname, command, timeout=120, tty=False, stdi
 
     # DNS lookup
     if client.dns is None and not dns_lookup(clientname, adminname, reportname):
-        return None
+        return
+    elif client.dns is None:
+        client = objects.Client(clientname, adminname, reportname)
 
     # Prepare shell command
     options = client.props.get('ssh_options', ['-o', 'StrictHostKeyChecking=no'])
