@@ -128,6 +128,8 @@ class Client(BaseObject):
     def __init__(self, name, adminname, reportname):
         self.adminname = adminname
         self.reportname = reportname
+        self.task = None
+        self.has_dns = None
         self.ref_url = '{}/api/{}/report/{}/{}/{}'.format(
             BASE_URL, API_VERSION, adminname, reportname, name
         )
@@ -137,6 +139,8 @@ class Client(BaseObject):
         """
         Runs a method imported from tasks with self and kwargs as arguments.
         """
+        if not self.has_dns:
+            return False
         method = getattr(tasks, taskname)
 
         # Start the task
@@ -152,6 +156,8 @@ class Client(BaseObject):
         Returns the status of last performed task.
         If the task is finished, updates the current state.
         """
+        if not self.has_dns:
+            return False
         task = task_pool.get(self)
         if task is None or self.task is None:
             return True

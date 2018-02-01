@@ -23,8 +23,14 @@ def dns_lookup(clientname, adminname, reportname):
     Function to perform DNS lookup
     """
     client = objects.Client(clientname, adminname, reportname)
-    client.ip = socket.gethostbyname(client.name)
-    client.fqdn = socket.getfqdn(client.ip)
+    try:
+        client.ip = socket.gethostbyname(client.name)
+        client.fqdn = socket.getfqdn(client.ip)
+        client.has_dns = True
+    except:
+        client.ip = 'Not resolved'
+        client.fqdn = 'Not resolved'
+        client.has_dns = False
     return client.save()
 
 @celery_app.task
