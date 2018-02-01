@@ -7,6 +7,8 @@ Email           : sayanarijit@gmail.com
 
 import re
 import markdown
+import atexit
+from tqdm import tqdm
 from mdx_gfm import GithubFlavoredMarkdownExtension
 from bson.json_util import loads, dumps
 from os import path
@@ -22,6 +24,7 @@ from ultron.config import API_VERSION, PORT, SECRET, SSL_KEY_FILE, SSL_CERT_FILE
 
 
 app = Flask(__name__)
+app.debug = True
 app.config['BUNDLE_ERRORS'] = True
 app.config['SECRET_KEY'] = SECRET
 CORS(app)
@@ -29,6 +32,7 @@ api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
 server = WSGIServer(('', PORT), app, keyfile=SSL_KEY_FILE, certfile=SSL_CERT_FILE)
 auth = Authentication()
 task_pool = TaskPool()
+atexit.register(task_pool.purge_all)
 
 
 # APP overwrites ---------------------------------------------------------------
@@ -57,7 +61,7 @@ def init_clients(clientnames, adminname, reportname):
     Initialize client objects from passed clientnames
     """
     valid, invalid = [], []
-    for x in clientnames:
+    for x in tqdm(clientnames):
         try:
             valid.append(Client(x, adminname, reportname))
         except Exception as e:
@@ -235,7 +239,7 @@ class ReportsApi(Resource):
                                           adminname, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
-        return dict(results=list(map(lambda x: {x.name: x.dict()}, clients)))
+        return dict(results=list(map(lambda x: {x.name: x.dict()}, tqdm(clients))))
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -254,7 +258,7 @@ class ReportsApi(Resource):
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
         return dict(results=list(map(
-            lambda x: {x.name: x.cleanup()}, clients
+            lambda x: {x.name: x.cleanup()}, tqdm(clients)
         )))
 
 
@@ -288,7 +292,7 @@ class TaskApi(Resource):
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable")
-        return dict(result={x.name: x.finished(task_pool) for x in clients})
+        return dict(result={x.name: x.finished(task_pool) for x in tqdm(clients)})
 
     @auth.authenticate
     @auth.restrict_to_owner
@@ -333,7 +337,7 @@ class TaskApi(Resource):
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable")
-        return dict(result={x.name: x.perform(task, task_pool, **kwargs) for x in clients})
+        return dict(result={x.name: x.perform(task, task_pool, **kwargs) for x in tqdm(clients)})
 
 
 class AdminsApi(Resource):
@@ -441,4 +445,4 @@ api.add_resource(AdminApi, '/admin/<adminname>')
 
 # Run app ----------------------------------------------------------------------
 if __name__ == '__main__':
-    app.run('0.0.0.0', port=PORT, debug=True, ssl_context='adhoc')
+    app.run('0.0.0.0', port=PORT, ssl_context='adhoc')

@@ -41,6 +41,12 @@ class TaskPool(object):
         except:
             return None
 
+    def purge_all(self):
+        """
+        Purge all submitted tasks
+        """
+        return tasks.celery_app.control.purge()
+
 
 class BaseObject(object):
     """
