@@ -45,7 +45,7 @@ class TaskPool(object):
         """
         Purge all submitted tasks
         """
-        if reportname is not None:
+        if reportname is not None and reportname in self.pool:
             result = list(map(
                 lambda x: tasks.celery_app.control.revoke(x.id),
                 self.pool[reportname].values()
@@ -139,15 +139,10 @@ class Client(BaseObject):
             self.fqdn = socket.getfqdn(self.ip)
             self.save()
 
-    def perform(self, taskname, task_pool, force=False, **kwargs):
+    def perform(self, taskname, task_pool, **kwargs):
         """
         Runs a method imported from tasks with self and kwargs as arguments.
-        If force is True and a task is already running, it will override the task,
-        i.e. the first result will not be logged but both tasks will be executed in parallel.
         """
-        if not self.finished(task_pool) and not force:
-            return False
-
         method = getattr(tasks, taskname)
 
         # Start the task
