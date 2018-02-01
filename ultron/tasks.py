@@ -18,7 +18,7 @@ celery_app = Celery('tasks', backend=CELERY_BACKEND, broker=CELERY_BROKER)
 
 
 @celery_app.task
-def set_props(clientname, adminname, reportname, props={}):
+def set_props(clientname, adminname, reportname, **props):
     """
     Function to set client properties
     """
