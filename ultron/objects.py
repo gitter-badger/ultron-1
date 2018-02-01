@@ -139,7 +139,7 @@ class Client(BaseObject):
         """
         Runs a method imported from tasks with self and kwargs as arguments.
         """
-        if not self.has_dns:
+        if taskname != 'dns_lookup' and not self.has_dns:
             return False
         method = getattr(tasks, taskname)
 
@@ -148,8 +148,7 @@ class Client(BaseObject):
         task_pool.submit(self, task)
         self.task = {'taskname': taskname, 'exception': None, 'finished': False,
                      'state': task.state, 'result': None}
-        self.save()
-        return True
+        return self.save()
 
     def finished(self, task_pool):
         """

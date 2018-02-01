@@ -239,7 +239,10 @@ class ReportsApi(Resource):
                                           adminname, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No clientname is DNS resolvable report")
-        return dict(results=list(map(lambda x: {x.name: x.dict()}, tqdm(clients))))
+        return dict(results=list(map(
+            lambda x: {x.name: x.perform('dns_lookup', task_pool)},
+            tqdm(clients)
+        )))
 
     @auth.authenticate
     @auth.restrict_to_owner
