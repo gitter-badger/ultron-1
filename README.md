@@ -181,7 +181,7 @@ curl -k --request DELETE \
 
 
 * Example: Token based auth
-```
+```bash
 # Get auth token
 curl -k --request GET \
   --url $api_url/token/$user \
