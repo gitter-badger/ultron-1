@@ -129,18 +129,20 @@ class Client(BaseObject):
         self.adminname = adminname
         self.reportname = reportname
         self.task = None
-        self.has_dns = None
         self.ref_url = '{}/api/{}/report/{}/{}/{}'.format(
             BASE_URL, API_VERSION, adminname, reportname, name
         )
         BaseObject.__init__(self, name, 'Reports')
+        if not self.model().load(self):
+            self.state = {}
+            self.props = {}
+            self.dns = None
+            self.save()
 
     def perform(self, taskname, task_pool, **kwargs):
         """
         Runs a method imported from tasks with self and kwargs as arguments.
         """
-        if taskname != 'dns_lookup' and not self.has_dns:
-            return False
         method = getattr(tasks, taskname)
 
         # Start the task
@@ -148,15 +150,14 @@ class Client(BaseObject):
         task_pool.submit(self, task)
         self.task = {'taskname': taskname, 'exception': None, 'finished': False,
                      'state': task.state, 'result': None}
-        return self.save()
+        self.save()
+        return True
 
     def finished(self, task_pool):
         """
         Returns the status of last performed task.
         If the task is finished, updates the current state.
         """
-        if not self.has_dns and self.task is None:
-            return False
         task = task_pool.get(self)
         if task is None or self.task is None:
             return True

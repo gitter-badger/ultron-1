@@ -24,14 +24,12 @@ def dns_lookup(clientname, adminname, reportname):
     """
     client = objects.Client(clientname, adminname, reportname)
     try:
-        client.ip = socket.gethostbyname(client.name)
-        client.fqdn = socket.getfqdn(client.ip)
-        client.has_dns = True
+        ip = socket.gethostbyname(client.name)
+        fqdn = socket.getfqdn(ip)
+        client.dns = dict(ip=ip, fqdn=fqdn)
+        return client.save()
     except:
-        client.ip = 'Not resolved'
-        client.fqdn = 'Not resolved'
-        client.has_dns = False
-    return client.save()
+        return False
 
 @celery_app.task
 def ping(clientname, adminname, reportname):
@@ -39,9 +37,14 @@ def ping(clientname, adminname, reportname):
     Function to ping referenced client
     """
     client = objects.Client(clientname, adminname, reportname)
+
+    # DNS lookup
+    if client.dns is None and not dns_lookup(clientname, adminname, reportname):
+        return None
+
     # Prepare shell command
     options = client.props.get('ping_options', ['-c1', '-w5'])
-    target = client.fqdn
+    target = client.dns.get('fqdn', client.name)
     cmd = ['ping'] + options + [target]
 
     # Execute shell command
@@ -72,9 +75,9 @@ def shell(clientname, adminname, reportname, command, timeout=120, stdin=None, h
         shell('localhost', 'admin', 'test', 'nslookup {client.ip}')
     """
     client = objects.Client(clientname, adminname, reportname)
-    cmd = command.format(client=client)
 
     # Execute shell command
+    cmd = command.format(client=client)
     if stdin:
         echo = Popen(['echo', '-en', stdin.format(client=client)], stdout=PIPE)
         p = Popen(cmd, stdout=PIPE, stderr=PIPE, stdin=echo.stdout, shell=True)
@@ -101,9 +104,14 @@ def ssh(clientname, adminname, reportname, command, timeout=120, tty=False, stdi
     Function to execute command over SSH protocol
     """
     client = objects.Client(clientname, adminname, reportname)
+
+    # DNS lookup
+    if client.dns is None and not dns_lookup(clientname, adminname, reportname):
+        return None
+
     # Prepare shell command
     options = client.props.get('ssh_options', ['-o', 'StrictHostKeyChecking=no'])
-    target = client.props.get('fqdn', client.name)
+    target = client.dns.get('fqdn', client.name)
     ssh_user = client.props.get('ssh_user', os.getlogin())
     ssh_pass = client.props.get('ssh_pass', 'dummy')
     ssh_key = client.props.get('ssh_key', None)
