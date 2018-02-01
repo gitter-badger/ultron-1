@@ -73,7 +73,7 @@ pip install ultron
 * Generate SSL certificate and key file
 
 ```bash
-openssl req -x509 -newkey rsa:4096 -nodes -out ~/.ultron_cert.pem -keyout ~/.ultron_key.pem -days 36
+openssl req -x509 -newkey rsa:4096 -nodes -out ~/.ultron_cert.pem -keyout ~/.ultron_key.pem -days 365
 ```
 
 * Run application
