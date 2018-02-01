@@ -151,7 +151,7 @@ class ReportApi(Resource):
                     data='{}. Expected BSON encoded key-value pairs'.format(e)
                 )
         try:
-            client = Client(clientname, adminname, reportname)
+            client = Client(clientname, adminname, reportname, task_pool)
         except Exception as e:
             abort(
                 400,
@@ -168,7 +168,7 @@ class ReportApi(Resource):
         Deletes a report
         """
         try:
-            client = Client(clientname, adminname, reportname)
+            client = Client(clientname, adminname, reportname, task_pool)
         except Exception as e:
             abort(
                 400,
