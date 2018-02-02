@@ -137,13 +137,13 @@ class ReportApi(Resource):
         Update client state
         """
         parser = RequestParser()
-        parser.add_argument('data', type=str,
+        parser.add_argument('props', type=str,
                 help='Expected BSON encoded key-value pairs')
         args = parser.parse_args()
-        data = {}
-        if args['data'] is not None:
+        props = {}
+        if args['props'] is not None:
             try:
-                data = dict(loads(args['data']))
+                props = dict(loads(args['props']))
             except Exception as e:
                 abort(
                     400,
@@ -156,7 +156,7 @@ class ReportApi(Resource):
                 400,
                 data='{}. Invalid client name'.format(e)
             )
-        client.props.update(data)
+        client.props.update(props)
         client.save()
         return dict(result=client.dict())
 
@@ -232,12 +232,28 @@ class ReportsApi(Resource):
         parser = RequestParser()
         parser.add_argument('clientnames', type=str, required=True,
                 help='Expected comma seperated hostnames')
+        parser.add_argument('props', type=str,
+                help='Expected BSON encoded key-value pairs')
         args = parser.parse_args()
 
         clients, not_found = init_clients(form2list(args['clientnames']),
                                           adminname, reportname)
         if len(clients) == 0:
             abort(400, clientnames="No client found in DB report")
+        props = {}
+        if args['props'] is not None:
+            try:
+                props = dict(loads(args['props']))
+            except Exception as e:
+                abort(
+                    400,
+                    data='{}. Expected BSON encoded key-value pairs'.format(e)
+                )
+        if len(props) > 0:
+            for c in tqdm(clients):
+                c.props.update(props)
+                c.save()
+
         return dict(results=list(map(
             lambda x: {x.name: x.dict()},
             tqdm(clients)
