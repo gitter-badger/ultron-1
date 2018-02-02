@@ -26,7 +26,7 @@ done
 # Start app
 
 echo "Starting ultron..."
-tmux new -s ultron 'celery -A ultron.tasks worker --loglevel=info --autoscale='$ULTRON_AUTOSCALE \; \
-    split-window 'python -c "from ultron.app import server; server.serve_forever()"' \; \
-    split-window 'mongod --dbpath '$ULTRON_DB_PATH \; \
-    split-window 'redis-server'
+tmux new -s ultron 'redis-server' \; \
+    split-window -p 80 'mongod --dbpath '$ULTRON_DB_PATH \; \
+    split-window -p 80 'celery -A ultron.tasks worker --loglevel=info --autoscale='$ULTRON_AUTOSCALE \; \
+    split-window -h 'python -c "from ultron.app import server; server.serve_forever()"'

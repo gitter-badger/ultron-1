@@ -25,10 +25,13 @@ class TaskPool(object):
         """
         Submit a celery task to pool
         """
-        if client.reportname not in self.pool:
-            self.pool[client.reportname] = {}
-        report = self.pool[client.reportname]
-        report[client.name] = task
+        if client.adminname not in self.pool:
+            self.pool[client.adminname] = {}
+        reports = self.pool[client.adminname]
+        if client.reportname not in reports:
+            reports[client.reportname] = {}
+        tasks = reports[client.reportname]
+        tasks[client.name] = task
         return True
 
     def get(self, client):
@@ -36,22 +39,27 @@ class TaskPool(object):
         Get last submitted celery task
         """
         try:
-            return self.pool[client.reportname][client.name]
+            return self.pool[client.adminname][client.reportname][client.name]
         except:
             return None
 
-    def purge_all(self, reportname=None):
+    def cancel_all(self):
         """
-        Purge all submitted tasks
+        Cancel all pending tasks
         """
-        if reportname is not None and reportname in self.pool:
-            result = list(map(
-                lambda x: tasks.celery_app.control.revoke(x.id),
-                self.pool[reportname].values()
-            ))
-            self.pool[reportname] = {}
-            return result
         return tasks.celery_app.control.purge()
+
+    def cancel(self, client):
+        """
+        Cancel client's pending task
+        """
+        try:
+            task = self.pool[client.adminname][client.reportname][client.name]
+            tasks.celery_app.control.revoke(task.id)
+            self.pool[client.adminname][client.reportname][client.name] = None
+        except:
+            pass
+        return True
 
 
 class BaseObject(object):
@@ -145,6 +153,9 @@ class Client(BaseObject):
         """
         method = getattr(tasks, taskname)
 
+        # First cancel pending task if any
+        self.cancel(task_pool)
+
         # Start the task
         task = method.delay(self.name, self.adminname, self.reportname, **kwargs)
         task_pool.submit(self, task)
@@ -174,6 +185,14 @@ class Client(BaseObject):
             self.task.update({'finished': True, 'state': task.state})
             self.save()
         return True
+
+    def cancel(self, task_pool):
+        """
+        Cancels pending task
+        """
+        task_pool.cancel(self)
+        self.task = None
+        return self.save()
 
 
 class Admin(BaseObject):

@@ -140,6 +140,11 @@ curl -k --request GET \
   --url $api_url/task/$user/$reportname \
   --user $user:$pass
 
+# cancel any pending task
+curl -k --request DELETE \
+  --url $api_url/task/$user/$reportname \
+  --user $user:$pass
+
 # Delete client
 curl -k --request DELETE \
   --url $api_url/report/$user/$reportname/localhost \

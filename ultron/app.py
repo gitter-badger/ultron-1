@@ -32,8 +32,7 @@ api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
 server = WSGIServer(('', PORT), app, keyfile=SSL_KEY_FILE, certfile=SSL_CERT_FILE)
 auth = Authentication()
 task_pool = TaskPool()
-atexit.register(task_pool.purge_all)
-
+atexit.register(task_pool.cancel_all)
 
 # APP overwrites ---------------------------------------------------------------
 
@@ -238,7 +237,7 @@ class ReportsApi(Resource):
         clients, not_found = init_clients(form2list(args['clientnames']),
                                           adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No clientname is DNS resolvable report")
+            abort(400, clientnames="No client found in DB report")
         return dict(results=list(map(
             lambda x: {x.name: x.dict()},
             tqdm(clients)
@@ -259,7 +258,7 @@ class ReportsApi(Resource):
         ))
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No clientname is DNS resolvable report")
+            abort(400, clientnames="No client found in DB report")
         return dict(results=list(map(
             lambda x: {x.name: x.cleanup()}, tqdm(clients)
         )))
@@ -274,8 +273,6 @@ class TaskApi(Resource):
         """
         Updates task state in clients and returns if the task in finished
         """
-        global clients
-
         parser = RequestParser()
         parser.add_argument('clientnames', type=str,
                 help='Expected comma seperated hostnames')
@@ -294,7 +291,7 @@ class TaskApi(Resource):
             ))
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No clientname is DNS resolvable")
+            abort(400, clientnames="No client found in DB")
         return dict(result={x.name: x.finished(task_pool) for x in tqdm(clients)})
 
     @auth.authenticate
@@ -303,8 +300,6 @@ class TaskApi(Resource):
         """
         Performs a task for specified clients in an ultron
         """
-        global clients
-
         parser = RequestParser()
         parser.add_argument('task', type=str, required=True,
                 help='Missing task to be performed')
@@ -339,10 +334,37 @@ class TaskApi(Resource):
             ))
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No clientname is DNS resolvable")
-        task_pool.purge_all(reportname)
+            abort(400, clientnames="No client found in DB")
         return dict(result={x.name: x.perform(task, task_pool, **kwargs) for x in tqdm(clients)})
 
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def delete(self, adminname, reportname):
+        """
+        Cancels pending tasks
+        """
+        global clients
+
+        parser = RequestParser()
+        parser.add_argument('clientnames', type=str,
+                help='Expected comma seperated hostnames')
+        args = parser.parse_args()
+
+        if args['clientnames'] is not None:
+            clientnames = form2list(args['clientnames'])
+        else:
+            reports = Reports()
+            clientnames = list(map(
+                lambda x: x['clientname'],
+                reports.collection.find({
+                    'adminname': adminname,
+                    'name': reportname
+                })
+            ))
+        clients, not_found = init_clients(clientnames, adminname, reportname)
+        if len(clients) == 0:
+            abort(400, clientnames="No client found in DB")
+        return dict(result={x.name: x.cancel(task_pool) for x in tqdm(clients)})
 
 class AdminsApi(Resource):
     """
