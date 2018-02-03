@@ -393,7 +393,7 @@ class AdminsApi(Resource):
         """
         admins = Admins()
         return dict(results=list(admins.collection.find(
-            {}, {'_id': 0, 'password': 0, '_modelname': 0}
+            {}, {'_id': 0, 'password': 0, '_modelname': 0, 'token': 0}
         )))
 
 
