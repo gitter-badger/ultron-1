@@ -16,7 +16,7 @@ from flask import Flask, jsonify, make_response, Markup
 from flask_restful import Resource, Api, abort
 from flask_restful.reqparse import RequestParser
 from flask_cors import CORS
-from gevent.wsgi import WSGIServer
+from gevent.pywsgi import WSGIServer
 from ultron.objects import Client, Admin, TaskPool
 from ultron.models import Reports, Admins
 from ultron.authentication import Authentication
@@ -27,7 +27,7 @@ app = Flask(__name__)
 app.debug = True
 app.config['BUNDLE_ERRORS'] = True
 app.config['SECRET_KEY'] = SECRET
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 api = Api(app, prefix='/api/'+API_VERSION, catch_all_404s=True)
 server = WSGIServer(('', PORT), app, keyfile=SSL_KEY_FILE, certfile=SSL_CERT_FILE)
 auth = Authentication()
