@@ -50,7 +50,7 @@ setup(
         'Operating System :: POSIX'
     ],
     keywords='Infrastructure Management Tool',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests', 'ultron_plugins']),
     install_requires=install_requirements,
     # extras_require=extra_requirements,
     scripts=['bin/ultron-run']
