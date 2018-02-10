@@ -37,6 +37,7 @@ Only Linux platform with systemd supports this.
 | Celery backend | ULTRON_CELERY_BACKEND | 'rpc://' |
 | Celery broker | ULTRON_CELERY_BROKER | 'redis://localhost:6379/' |
 | Auto scaling (max,min) concurrency | ULTRON_AUTOSCALE | '100,3' |
+| Custom plugins | ULTRON_PLUGINS_PATH | '~/ultron_plugins' |
 
 
 ### Installation
