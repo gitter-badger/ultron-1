@@ -11,11 +11,12 @@ __metaclass__ = type
 
 
 import os
+import sys
 import socket
 from urllib.parse import quote_plus
 
 
-VERSION = 'v1.1.14'
+VERSION = 'v1.1.15'
 API_VERSION = 'v1.0'
 PORT = int(os.environ.get('ULTRON_PORT', 5050))
 BASE_URL = os.environ.get('ULTRON_BASE_URL',
@@ -37,3 +38,6 @@ else:
 
 CELERY_BACKEND = os.environ.get('ULTRON_CELERY_BACKEND', 'rpc://')
 CELERY_BROKER = os.environ.get('ULTRON_CELERY_BROKER', 'redis://localhost:6379/')
+
+PLUGINS_PATH = os.path.expanduser(os.environ.get('ULTRON_PLUGINS_PATH', '~/ultron_plugins'))
+sys.path.append(PLUGINS_PATH)

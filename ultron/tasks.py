@@ -16,6 +16,11 @@ from ultron import objects
 
 celery_app = Celery('tasks', backend=CELERY_BACKEND, broker=CELERY_BROKER)
 
+try:
+    import plugin_tasks
+except:
+    pass
+
 
 @celery_app.task
 def set_props(clientname, adminname, reportname, **props):

@@ -211,3 +211,40 @@ curl -k --request DELETE \
   --url $api_url/token/$user \
   --header Authorization:$token
 ```
+
+
+### Task plugins
+
+One can easily create task plugins for ultron following below steps
+For this demo, we will consider default ULTRON_PLUGINS_PATH. i.e. "~/ultron_plugins"
+
+* Create plugins directory
+
+```bash
+mkdir -p ~/ultron_plugins/plugin_tasks
+```
+
+* Create the task in "~/ultron_plugins/plugin_tasks/test.py"
+
+```python
+from ultron.tasks import celery_app
+from ultron import objects
+
+@celery_app.task
+def testfunc(clientname, adminname, reportname, **kwargs):
+    """
+    Just a demo task
+    """
+    client = objects.Client(clientname, adminname, reportname)
+    client.state.update({'test': 'SUCCESS'})
+    client.save()
+    print(client.__dict__)
+    print(kwargs)
+    return {'conclusion': 'Test is successful', 'kwargs': kwargs}
+```
+
+* Import the task in "~/ultron_plugins/plugin_tasks/__init__.py" file
+
+```python
+from .test import testfunc
+```

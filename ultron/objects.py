@@ -151,7 +151,10 @@ class Client(BaseObject):
         """
         Runs a method imported from tasks with self and kwargs as arguments.
         """
-        method = getattr(tasks, taskname)
+        try:
+            method = getattr(tasks.plugin_tasks, taskname)
+        except:
+            method = getattr(tasks, taskname)
 
         # First cancel pending task if any
         self.cancel(task_pool)
