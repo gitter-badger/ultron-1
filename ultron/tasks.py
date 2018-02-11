@@ -22,14 +22,16 @@ except:
     pass
 
 
-@celery_app.task
-def set_props(clientname, adminname, reportname, **props):
+def list_tasks():
     """
-    Function to set client properties
+    Lists tasks registered in celery
     """
-    client = objects.Client(clientname, adminname, reportname)
-    client.props.update(props)
-    return client.save()
+    tasks = {}
+    for task in celery_app.tasks.keys():
+        if task.startswith('ultron.') or task.startswith('plugin_tasks.'):
+            tasks.update({task.split('.')[-1]: {'fullname': task}})
+    return tasks
+
 
 @celery_app.task
 def dns_lookup(clientname, adminname, reportname):
@@ -166,7 +168,7 @@ def ssh(clientname, adminname, reportname, command, timeout=120, tty=False, stdi
     }
     # Set/reset client properties
     client.state.update(
-        {'ssh_status': ssh_error_codes.get(exit_status, 'Accessible')}
+        {'ssh status': ssh_error_codes.get(exit_status, 'Accessible')}
     )
     client.save()
 

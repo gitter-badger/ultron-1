@@ -102,6 +102,14 @@ user=$USER
 echo -en 'Enter login password for '$user': ' && read -s pass
 ```
 
+* Example: List allowed tasks
+
+```bash
+curl -k --request GET \
+  --url $api_url/tasks/$user
+  --user $user:$pass
+```
+
 * Example: Perform ping check on 2 hosts
 
 ```bash
@@ -155,6 +163,23 @@ curl -k --request DELETE \
 curl -k --request DELETE \
   --url $api_url/reports/$user/$reportname \
   --user $user:$pass
+```
+
+
+* Example: publish report
+
+Published report will be visible with /public urls
+
+```bash
+# Publish report
+curl -k --request POST \
+  --url $api_url/reports/$user/$reportname \
+  --form 'published=1' \
+  --user $user:$pass
+
+# Get public report without auth
+curl -k --request GET \
+  --url $api_url/public/$user/$reportname
 ```
 
 
@@ -248,5 +273,5 @@ def testfunc(clientname, adminname, reportname, **kwargs):
 * Import the task in `~/ultron_plugins/plugin_tasks/__init__.py` file
 
 ```python
-from .demo import testfunc
+from .test import testfunc
 ```

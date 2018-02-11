@@ -148,15 +148,13 @@ class ReportApi(Resource):
             except Exception as e:
                 abort(
                     400,
-                    data='{}. Expected BSON encoded key-value pairs'.format(e)
+                    message='props: {}. Expected BSON encoded key-value pairs'.format(e)
                 )
         try:
             client = Client(clientname, adminname, reportname)
         except Exception as e:
-            abort(
-                400,
-                data='{}. Invalid client name'.format(e)
-            )
+            abort(400, message='clientname: {}. Invalid client name'.format(e))
+
         client.props.update(props)
         client.save()
         return dict(result=client.dict())
@@ -170,11 +168,53 @@ class ReportApi(Resource):
         try:
             client = Client(clientname, adminname, reportname)
         except Exception as e:
-            abort(
-                400,
-                data='{}. Invalid client name'.format(e)
-            )
+            abort(400, message='clientname: {}. Invalid client name'.format(e))
         return dict(result=client.cleanup())
+
+
+class PublicApi(Resource):
+    """
+    Methods: GET
+    """
+    def get(self, adminname, reportname):
+        parser = RequestParser()
+        parser.add_argument('clientnames', type=str,
+                help='Expected comma seperated hostnames')
+        parser.add_argument('query', type=str,
+                help='Expected JSON formatted pymongo query')
+        parser.add_argument('projection', type=str,
+                help='Expected JSON formatted pymongo projection')
+        args = parser.parse_args()
+        print('Entered get')
+
+        if args['clientnames'] is not None:
+            query = {'clientname': {'$in': form2list(args['clientnames'])}}
+        elif args['query'] is not None:
+            try:
+                query = dict(loads(args['query']))
+            except Exception as e:
+                abort(
+                    400,
+                    message='query: {}. Expected JSON encoded pymongo filter'.format(e)
+                )
+        else:
+            query = {}
+
+        if args['projection'] is not None:
+            try:
+                projection = dict(loads(args['projection']))
+            except Exception as e:
+                abort(
+                    400,
+                    message='projection: {}. Expected JSON encoded pymongo projection'.format(e)
+                )
+        else:
+            projection = {}
+
+        query.update({'adminname': adminname, 'name': reportname, 'published': True})
+        projection.update({'_id': 0, '_modelname': 0, 'published': 0})
+        reports = Reports()
+        return dict(results=list(reports.collection.find(query, projection)))
 
 
 class ReportsApi(Resource):
@@ -196,14 +236,14 @@ class ReportsApi(Resource):
         args = parser.parse_args()
 
         if args['clientnames'] is not None:
-            query = {'name': {'$in': form2list(args['clientnames'])}}
+            query = {'cientname': {'$in': form2list(args['clientnames'])}}
         elif args['query'] is not None:
             try:
                 query = dict(loads(args['query']))
             except Exception as e:
                 abort(
                     400,
-                    query='{}. Expected JSON encoded pymongo filter'.format(e)
+                    message='query: {}. Expected JSON encoded pymongo filter'.format(e)
                 )
         else:
             query = {}
@@ -214,12 +254,12 @@ class ReportsApi(Resource):
             except Exception as e:
                 abort(
                     400,
-                    query='{}. Expected JSON encoded pymongo projection'.format(e)
+                    message='projection: {}. Expected JSON encoded pymongo projection'.format(e)
                 )
         else:
             projection = {}
 
-        query = dict(adminname=adminname, name=reportname)
+        query.update({'adminname': adminname, 'name': reportname})
         projection.update({'_id': 0, '_modelname': 0})
         reports = Reports()
         return dict(results=list(reports.collection.find(query, projection)))
@@ -231,16 +271,28 @@ class ReportsApi(Resource):
         Starts/loads clients for an ultron
         """
         parser = RequestParser()
-        parser.add_argument('clientnames', type=str, required=True,
+        parser.add_argument('clientnames', type=str,
                 help='Expected comma seperated hostnames')
         parser.add_argument('props', type=str,
                 help='Expected BSON encoded key-value pairs')
+        parser.add_argument('published', type=int,
+                help='Expected boolean value')
         args = parser.parse_args()
 
-        clients, not_found = init_clients(form2list(args['clientnames']),
-                                          adminname, reportname)
+        if args['clientnames'] is not None:
+            clientnames = form2list(args['clientnames'])
+        else:
+            reports = Reports()
+            clientnames = list(map(
+                lambda x: x['clientname'],
+                reports.collection.find({
+                    'adminname': adminname,
+                    'name': reportname
+                })
+            ))
+        clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No client found in DB report")
+            abort(400, message='clientnames: No client found in DB report')
         props = {}
         if args['props'] is not None:
             try:
@@ -248,10 +300,12 @@ class ReportsApi(Resource):
             except Exception as e:
                 abort(
                     400,
-                    data='{}. Expected BSON encoded key-value pairs'.format(e)
+                    message='props: {}. Expected BSON encoded key-value pairs'.format(e)
                 )
-        if len(props) > 0:
+        if len(props) > 0 or args['published'] is not None:
             for c in tqdm(clients):
+                if args['published'] is not None:
+                    c.published = bool(args['published'])
                 c.props.update(props)
                 c.save()
 
@@ -275,7 +329,7 @@ class ReportsApi(Resource):
         ))
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No client found in DB report")
+            abort(400, message='clientnames: No client found in DB report')
         return dict(results=list(map(
             lambda x: {x.name: x.cleanup()}, tqdm(clients)
         )))
@@ -308,7 +362,7 @@ class TaskApi(Resource):
             ))
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No client found in DB")
+            abort(400, message='clientnames: No client found in DB report')
         return dict(result={x.name: x.finished(task_pool) for x in tqdm(clients)})
 
     @auth.authenticate
@@ -327,13 +381,16 @@ class TaskApi(Resource):
         args = parser.parse_args()
 
         task = args['task']
+        admin = Admin(adminname)
+        if task not in admin.allowed_tasks():
+            abort(401, message='task: {}: You are not authorized to perform this task'.format(task))
         if args['kwargs'] is not None:
             try:
                 kwargs = dict(loads(args['kwargs']))
             except Exception as e:
                 abort(
                     400,
-                    kwargs='{}. Expected JSON encoded key-value pairs'.format(e)
+                    message='kwargs: {}. Expected JSON encoded key-value pairs'.format(e)
                 )
         else:
             kwargs = {}
@@ -351,7 +408,7 @@ class TaskApi(Resource):
             ))
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No client found in DB")
+            abort(400, message='clientnames: No client found in DB')
         return dict(result={x.name: x.perform(task, task_pool, **kwargs) for x in tqdm(clients)})
 
     @auth.authenticate
@@ -380,8 +437,23 @@ class TaskApi(Resource):
             ))
         clients, not_found = init_clients(clientnames, adminname, reportname)
         if len(clients) == 0:
-            abort(400, clientnames="No client found in DB")
+            abort(400, message='clientnames: No client found in DB')
         return dict(result={x.name: x.cancel(task_pool) for x in tqdm(clients)})
+
+
+class TasksApi(Resource):
+    """
+    Methods: GET
+    """
+    @auth.authenticate
+    @auth.restrict_to_owner
+    def get(self, adminname):
+        """
+        List available tasks
+        """
+        admin = Admin(adminname)
+        return dict(results=admin.allowed_tasks())
+
 
 class AdminsApi(Resource):
     """
@@ -432,7 +504,7 @@ class AdminApi(Resource):
             except Exception as e:
                 abort(
                     400,
-                    data='{}. Expected BSON encoded key-value pairs'.format(e)
+                    message='data: {}. Expected BSON encoded key-value pairs'.format(e)
                 )
         admin = Admin(adminname)
         admin.props.update(data)
@@ -482,8 +554,10 @@ api.add_resource(TokenApi, '/token/<adminname>')
 api.add_resource(ReportApi, '/report/<adminname>/<reportname>/<clientname>')
 api.add_resource(ReportsApi, '/reports/<adminname>/<reportname>')
 api.add_resource(TaskApi, '/task/<adminname>/<reportname>')
+api.add_resource(TasksApi, '/tasks/<adminname>')
 api.add_resource(AdminsApi, '/admins')
 api.add_resource(AdminApi, '/admin/<adminname>')
+api.add_resource(PublicApi, '/public/<adminname>/<reportname>')
 
 
 # Run app ----------------------------------------------------------------------

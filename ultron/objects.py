@@ -142,8 +142,7 @@ class Client(BaseObject):
         )
         BaseObject.__init__(self, name, 'Reports')
         if not self.model().load(self):
-            self.state = {}
-            self.props = {}
+            self.published = False
             self.dns = None
             self.save()
 
@@ -265,4 +264,12 @@ class Admin(BaseObject):
             'expires': datetime.utcnow()
         })
         return dict(revoked=self.save())
+
+    def allowed_tasks(self):
+        """
+        List tasks that this admin can perform
+        """
+        restricted_tasks = self.props.get('restricted_tasks', [])
+        return [k for k in tasks.list_tasks() if k not in restricted_tasks]
+
 
