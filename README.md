@@ -4,6 +4,8 @@
 
 # ultron
 
+[![Join the chat at https://gitter.im/rapidstack/ultron](https://badges.gitter.im/rapidstack/ultron.svg)](https://gitter.im/rapidstack/ultron?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Not just another infrastructure management tool
 
 
@@ -37,7 +39,7 @@ Only Linux platform with systemd supports this.
 | Celery backend | ULTRON_CELERY_BACKEND | 'rpc://' |
 | Celery broker | ULTRON_CELERY_BROKER | 'redis://localhost:6379/' |
 | Auto scaling (max,min) concurrency | ULTRON_AUTOSCALE | '100,3' |
-| Custom plugins | ULTRON_PLUGINS_PATH | '~/ultron_plugins' |
+| Plugins path | ULTRON_PLUGINS_PATH | '~/python_modules' |
 
 
 ### Installation
@@ -239,39 +241,6 @@ curl -k --request DELETE \
 ```
 
 
-### Task plugins
+### Plugins
 
-One can easily create task plugins for ultron following below steps.
-
-For this demo, we will consider default ULTRON_PLUGINS_PATH. i.e. `~/ultron_plugins`
-
-* Create plugins directory
-
-```bash
-mkdir -p ~/ultron_plugins/plugin_tasks
-```
-
-* Create the task in `~/ultron_plugins/plugin_tasks/demo.py`
-
-```python
-from ultron.tasks import celery_app
-from ultron import objects
-
-@celery_app.task
-def testfunc(clientname, adminname, reportname, **kwargs):
-    """
-    Just a demo task
-    """
-    client = objects.Client(clientname, adminname, reportname)
-    client.state.update({'test': 'SUCCESS'})
-    client.save()
-    print(client.__dict__)
-    print(kwargs)
-    return {'conclusion': 'Test is successful', 'kwargs': kwargs}
-```
-
-* Import the task in `~/ultron_plugins/plugin_tasks/__init__.py` file
-
-```python
-from .test import testfunc
-```
+For more info about plugin tasks, click here: [ultron-plugins](https://github.com/rapidstack/ultron-plugins)
